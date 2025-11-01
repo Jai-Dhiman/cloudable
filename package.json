@@ -31,7 +31,9 @@
     "topicSeparator": " "
   },
   "dependencies": {
-    "@oclif/core": "^4.8.0"
+    "@oclif/core": "^4.8.0",
+    "@types/js-yaml": "^4.0.9",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
