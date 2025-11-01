@@ -201,12 +201,70 @@ export default class Initialize extends Command {
         return;
       }
 
-      // Phase 4: Deployment
-      const deploySpinner = ora(chalk.cyan('Deploying to AWS...')).start();
+      // Phase 4: AWS Setup & Deployment Pipeline
+      this.log(chalk.cyan('\nStep 3: Setting up AWS credentials & deployment...\n'));
 
-      // TODO: Integrate with Deployment Coordinator Agent
+      // Step 4a: AWS Credentials Setup
+      this.log(chalk.bold('🔐 Setting up AWS credentials...\n'));
+      
+      // Prompt for AWS credentials using inquirer
+      const awsCredentials = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'accessKeyId',
+          message: 'AWS Access Key ID:',
+          validate: (input: string) => input.length > 0 || 'Access Key ID cannot be empty',
+        },
+        {
+          type: 'password',
+          name: 'secretAccessKey',
+          message: 'AWS Secret Access Key:',
+          mask: '*',
+          validate: (input: string) => input.length > 0 || 'Secret Access Key cannot be empty',
+        },
+        {
+          type: 'input',
+          name: 'region',
+          message: 'AWS Region:',
+          default: userAnswers.awsRegion || 'us-east-1',
+        },
+      ]);
 
-      deploySpinner.succeed(chalk.green('Deployment complete'));
+      const Setup = (await import('./setup.js')).default;
+      const setupCmd = new Setup(
+        ['--access-key', awsCredentials.accessKeyId, '--secret-key', awsCredentials.secretAccessKey, '--region', awsCredentials.region],
+        this.config
+      );
+      await setupCmd.run();
+
+      // Step 4b: Generate Dockerfile with AI
+      this.log(chalk.bold('\n🐳 Generating Dockerfile with AI...\n'));
+      const Docker = (await import('./docker.js')).default;
+      const dockerCmd = new Docker(this.argv, this.config);
+      await dockerCmd.run();
+
+      // Step 4c: Setup Remote Build (AWS CodeBuild)
+      this.log(chalk.bold('\n☁️  Setting up AWS remote build...\n'));
+      const SetupRemote = (await import('./setup-remote.js')).default;
+      const setupRemoteCmd = new SetupRemote(this.argv, this.config);
+      await setupRemoteCmd.run();
+
+      // Step 4d: Deploy to AWS
+      const deploySpinner = ora(chalk.cyan('Deploying to AWS EC2...')).start();
+      
+      const Deploy = (await import('./deploy.js')).default;
+      const deployCmd = new Deploy(
+        [projectName, '--remote'],
+        this.config
+      );
+      
+      try {
+        await deployCmd.run();
+        deploySpinner.succeed(chalk.green('Deployment complete'));
+      } catch (error: any) {
+        deploySpinner.fail(chalk.red('Deployment failed'));
+        throw error;
+      }
 
       // Success message with enhanced formatting
       this.log('\n' + boxen(

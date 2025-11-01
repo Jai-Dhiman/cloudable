@@ -239,7 +239,7 @@ Provide recommendations as JSON:
     });
 
     // 2. Database (RDS or DocumentDB)
-    if (codeAnalysis.services.database) {
+    if (codeAnalysis.services.database && codeAnalysis.services.database.type) {
       const dbSize = this.getDatabaseSize(dau);
       const dbInstanceClass = DATABASE_SIZING[codeAnalysis.services.database.type]?.[dbSize] || 'db.t3.micro';
       const dbCost = this.estimateRDSCost(dbInstanceClass, region);
