@@ -71,7 +71,6 @@
     "@types/inquirer": "^9.0.9",
     "@types/js-yaml": "^4.0.9",
     "@types/node-fetch": "^2.6.13",
-    "@types/pdfkit": "^0.17.3",
     "agentmail": "^0.1.4",
     "ai": "^5.0.86",
     "boxen": "^8.0.1",
@@ -95,6 +94,7 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
     "@types/node": "^18.19.130",
+    "@types/pdfkit": "^0.17.3",
     "@types/uuid": "^10.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
