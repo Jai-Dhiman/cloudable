@@ -53,3 +53,5 @@ temp/
 oclif.manifest.json
 .oclif.manifest.json
 .env
+
+CLAUDE.md
