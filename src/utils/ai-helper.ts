@@ -1,5 +1,5 @@
 // Calls Cloudable backend API (your API key is server-side)
-const API_URL = 'https://backend-2hw0ttf2v-dpakkks-projects.vercel.app'
+const API_URL = 'https://backend-nzex4q8mo-dpakkks-projects.vercel.app'
 
 export class AIHelper {
   private apiUrl: string
