@@ -40,7 +40,7 @@ export default class Recommend extends Command {
       // Step 2: Get AI analysis
       const analysisSpinner = ora('AI analyzing your codebase...').start()
       
-      const analysisResponse = await fetch('https://backend-8a0ifztqi-dpakkks-projects.vercel.app/api/analyze', {
+      const analysisResponse = await fetch('https://backend-qmc2r78ko-dpakkks-projects.vercel.app/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export default class Recommend extends Command {
       // Step 3: Get AI deployment recommendations
       const recommendSpinner = ora('AI generating deployment recommendations...').start()
       
-      const recommendResponse = await fetch('https://backend-8a0ifztqi-dpakkks-projects.vercel.app/api/recommend', {
+      const recommendResponse = await fetch('https://backend-qmc2r78ko-dpakkks-projects.vercel.app/api/recommend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

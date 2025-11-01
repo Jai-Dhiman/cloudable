@@ -26,60 +26,56 @@ app.post('/api/analyze', async (req, res) => {
   try {
     const { projectFiles, projectName } = req.body;
 
-    const prompt = `You are an expert DevOps engineer. Analyze this codebase thoroughly by reading all the files provided.
+    const prompt = `Analyze this codebase. Only report what you see in the actual files.
 
 PROJECT: ${projectName}
 
 ${projectFiles}
 
-Based on ALL the files above, provide a comprehensive analysis with these EXACT sections:
+Provide ONLY these sections based on what's in the files:
 
-**PROJECT TYPE:** [Frontend / Backend / Fullstack / Mobile / Other]
+**PROJECT TYPE:** [Frontend / Backend / Fullstack]
 
-**COMPLEXITY:** [Simple / Medium / Complex / Enterprise] - Explain why
+**COMPLEXITY:** [Simple / Medium / Complex] - Why?
 
-**FRAMEWORK & STACK:**
-- Main framework/library
-- Programming language
-- Key dependencies
+**STACK:**
+- Framework/library (from package.json/requirements.txt)
+- Language
+- Main dependencies
 
-**ARCHITECTURE:**
-- What does this project do?
-- How is it structured?
+**SERVICES NEEDED:**
+- Database? (only if you see it in dependencies/docker-compose)
+- Cache? (only if you see Redis/Memcached)
+- Storage? (only if you see S3/file storage)
 
-**DEPLOYMENT REQUIREMENTS:**
-- Does it need a database? What type?
-- Does it need caching?
-- Does it need file storage?
-- Any special services (Redis, S3, etc.)?
+**BUILD COMMANDS:**
+- Install: (from package.json scripts)
+- Build: (from package.json scripts)
+- Start: (from package.json scripts)
+- Port: (from code or docker)
 
-**BUILD & RUN:**
-- How to install dependencies?
-- How to build it?
-- How to run it?
-- What port does it use?
+**DEPLOYMENT NOTES:**
+Only mention if you see it in the files:
+- Docker config
+- Environment variables needed
+- Special requirements
 
-**DEPLOYMENT INSIGHTS:**
-- Potential challenges
-- Special considerations
-- Security concerns
-
-Be specific and detailed. Base everything on the ACTUAL files you read above.`;
+Be direct. No fluff. Only report what's actually in the files.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert DevOps engineer with deep knowledge of all frameworks, languages, and cloud deployment strategies.',
+          content: 'You are a DevOps engineer. Be direct and concise. Only report facts from the code.',
         },
         {
           role: 'user',
           content: prompt,
         },
       ],
-      max_tokens: 1500,
-      temperature: 0.3,
+      max_tokens: 800,
+      temperature: 0.2,
     });
 
     res.json({
@@ -100,60 +96,46 @@ app.post('/api/recommend', async (req, res) => {
   try {
     const { aiAnalysis, projectFiles, projectName } = req.body;
 
-    const prompt = `You are an AWS Solutions Architect. Based on the project analysis below, recommend the OPTIMAL AWS deployment strategy.
+    const prompt = `Based on this project analysis, recommend AWS services for deployment. Be direct and concise.
 
 PROJECT: ${projectName}
 
-ANALYSIS:
 ${aiAnalysis}
 
-PROJECT FILES:
-${projectFiles || 'See analysis above'}
+Provide ONLY:
 
-Provide a detailed deployment recommendation with these EXACT sections:
+**AWS SERVICES:**
+- List specific services (Amplify/EC2/ECS/RDS/S3/CloudFront)
+- Why each service?
 
-**RECOMMENDED AWS SERVICES:**
-List the specific AWS services (e.g., ECS Fargate, Amplify, EC2, RDS, S3, CloudFront, etc.)
+**DEPLOYMENT STEPS:**
+1. Step one
+2. Step two
+3. Step three
+(Max 5 steps, be specific)
 
-**DEPLOYMENT ARCHITECTURE:**
-- How these services work together
-- Architecture diagram description
+**COST:**
+Estimated monthly cost for low traffic
 
-**COST ESTIMATE:**
-Rough monthly cost estimate (e.g., "$25-50/month for small traffic")
+**FASTER/CHEAPER OPTIONS:**
+If they exist
 
-**STEP-BY-STEP DEPLOYMENT:**
-1. First step...
-2. Second step...
-(Provide clear, actionable steps)
-
-**PROS:**
-- Why this is the best choice
-- Benefits
-
-**CONS:**
-- Potential drawbacks
-- What to watch out for
-
-**ALTERNATIVES:**
-If they want cheaper/easier/more scalable options
-
-Be specific about AWS service names and explain WHY each service is chosen based on the project's actual needs.`;
+No unnecessary text. Just the facts.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert AWS Solutions Architect with deep knowledge of cost optimization, scalability, and deployment best practices.',
+          content: 'AWS Solutions Architect. Be concise. No fluff.',
         },
         {
           role: 'user',
           content: prompt,
         },
       ],
-      max_tokens: 2000,
-      temperature: 0.3,
+      max_tokens: 600,
+      temperature: 0.2,
     });
 
     res.json({

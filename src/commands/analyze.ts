@@ -40,7 +40,7 @@ export default class Analyze extends Command {
       // Send to AI for deep analysis
       const aiSpinner = ora('AI analyzing your codebase... (this may take 10-20 seconds)').start()
       
-      const response = await fetch('https://backend-8a0ifztqi-dpakkks-projects.vercel.app/api/analyze', {
+      const response = await fetch('https://backend-qmc2r78ko-dpakkks-projects.vercel.app/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
