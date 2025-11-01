@@ -32,51 +32,51 @@ export interface HyperspellSearchResult<T> {
  * Provides memory storage and retrieval for the self-learning feedback engine
  */
 export class HyperspellClient {
-	private client: Hyperspell;
+	private client: Hyperspell | null = null;
 	private apiKey: string;
 	private isInitialized: boolean = false;
+	private isEnabled: boolean = false;
 
 	constructor(apiKey?: string) {
-		this.apiKey = apiKey || process.env.HYPERSPELL_API_KEY || "";
+		// Hyperspell SDK looks for HYPERSPELL_TOKEN, but we support both for backwards compatibility
+		this.apiKey = apiKey || process.env.HYPERSPELL_TOKEN || process.env.HYPERSPELL_API_KEY || "";
 
 		if (!this.apiKey) {
-			throw new Error(
-				"HYPERSPELL_API_KEY is required. Set it in your environment variables.",
-			);
+			// Fail quietly - Hyperspell is optional
+			this.isEnabled = false;
+			return;
+		}
+
+		// Validate that it's an App Token, not a JWT secret
+		if (this.apiKey.length < 20 || this.apiKey.includes(' ')) {
+			// Fail quietly - invalid API key
+			this.isEnabled = false;
+			return;
 		}
 
 		this.client = new Hyperspell({ apiKey: this.apiKey });
+		this.isEnabled = true;
 	}
 
 	/**
 	 * Initialize the Hyperspell client and ensure collections exist
 	 */
 	async initialize(): Promise<void> {
+		if (!this.isEnabled) {
+			return;
+		}
+
 		if (this.isInitialized) {
 			return;
 		}
 
 		try {
-			// Test connection - check if we can access the memories endpoint
-			await this.client.memories.status();
-
-			// Initialize collections if they don't exist
-			const collections: HyperspellCollection[] = [
-				"user_decisions",
-				"deployment_patterns",
-				"cost_estimates",
-				"error_resolutions",
-			];
-
-			for (const collection of collections) {
-				await this.ensureCollection(collection);
-			}
-
+			// Hyperspell SDK auto-initializes with API key, no status check needed
+			// Collections are created automatically when memories are added
 			this.isInitialized = true;
 		} catch (error) {
-			throw new Error(
-				`Failed to initialize Hyperspell: ${error instanceof Error ? error.message : String(error)}`,
-			);
+			// Fail quietly - just disable Hyperspell
+			this.isEnabled = false;
 		}
 	}
 
@@ -511,11 +511,20 @@ export class HyperspellClient {
 	 * Generic store method
 	 */
 	private async store(request: HyperspellStoreRequest): Promise<void> {
-		await this.client.memories.add({
-			text: JSON.stringify(request.data),
-			collection: request.collection,
-			date: new Date().toISOString(),
-		});
+		if (!this.isEnabled || !this.client) {
+			return;
+		}
+
+		try {
+			await this.client.memories.add({
+				text: JSON.stringify(request.data),
+				collection: request.collection,
+				date: new Date().toISOString(),
+			});
+		} catch (error) {
+			// Fail quietly - log but don't throw
+			console.debug(`Hyperspell store failed: ${error instanceof Error ? error.message : String(error)}`);
+		}
 	}
 
 	/**
@@ -524,18 +533,28 @@ export class HyperspellClient {
 	private async search<T>(
 		query: HyperspellQuery,
 	): Promise<HyperspellSearchResult<T>[]> {
-		const results = await this.client.memories.search({
-			query: query.query,
-			sources: query.collection ? ["collections"] : undefined,
-			max_results: query.limit || 10,
-		});
+		if (!this.isEnabled || !this.client) {
+			return [];
+		}
 
-		return (results.documents || []).map((result: any) => ({
-			id: result.resource_id || result.id,
-			data: JSON.parse(result.text || "{}") as T,
-			score: result.score || 0,
-			metadata: result.metadata,
-		}));
+		try {
+			const results = await this.client.memories.search({
+				query: query.query,
+				sources: query.collection ? ["collections"] : undefined,
+				max_results: query.limit || 10,
+			});
+
+			return (results.documents || []).map((result: any) => ({
+				id: result.resource_id || result.id,
+				data: JSON.parse(result.text || "{}") as T,
+				score: result.score || 0,
+				metadata: result.metadata,
+			}));
+		} catch (error) {
+			// Fail quietly - log but don't throw
+			console.debug(`Hyperspell search failed: ${error instanceof Error ? error.message : String(error)}`);
+			return [];
+		}
 	}
 
 	/**
@@ -554,12 +573,28 @@ export class HyperspellClient {
 	 * Health check
 	 */
 	async healthCheck(): Promise<boolean> {
+		if (!this.isEnabled || !this.client) {
+			return false;
+		}
+
 		try {
-			await this.client.memories.status();
+			// Try a simple search to verify the API key works
+			await this.client.memories.search({
+				query: "health check",
+				sources: ["vault"],
+				options: { max_results: 1 }
+			});
 			return true;
 		} catch {
 			return false;
 		}
+	}
+
+	/**
+	 * Check if Hyperspell is enabled and available
+	 */
+	isAvailable(): boolean {
+		return this.isEnabled;
 	}
 }
 

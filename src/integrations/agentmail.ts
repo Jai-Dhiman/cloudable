@@ -119,6 +119,7 @@ export class AgentMailClient {
 
 			return message;
 		} catch (error) {
+			console.error('[AgentMail] Failed to send email:', error);
 			throw new Error(
 				`Failed to send email: ${error instanceof Error ? error.message : String(error)}`,
 			);
@@ -148,6 +149,29 @@ export class AgentMailClient {
 		} catch (error) {
 			throw new Error(
 				`Failed to list messages: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+	}
+
+	/**
+	 * Get a single message with full content
+	 */
+	async getMessage(messageId: string, inboxId?: string): Promise<any> {
+		const targetInbox = inboxId || this.defaultInboxId;
+
+		if (!targetInbox) {
+			throw new Error("No inbox ID provided and no default inbox set");
+		}
+
+		try {
+			const message = await this.client.inboxes.messages.get(
+				targetInbox,
+				messageId,
+			);
+			return message;
+		} catch (error) {
+			throw new Error(
+				`Failed to get message: ${error instanceof Error ? error.message : String(error)}`,
 			);
 		}
 	}
@@ -218,14 +242,22 @@ export class AgentMailClient {
 	 * Parse incoming email command
 	 */
 	parseEmailCommand(message: any): EmailCommandContext {
+		const messageId = message.messageId || message.message_id || "";
+		const threadId = message.threadId || message.thread_id || "";
+		const from = Array.isArray(message.from) ? message.from[0] : message.from;
+		const subject = message.subject || "";
+		const bodyText = message.text || message.body || message.plaintext || "";
+		const bodyHtml = message.html || message.html_body || undefined;
+		const inReplyTo = message.inReplyTo || message.in_reply_to || undefined;
+
 		return {
-			messageId: message.messageId,
-			threadId: message.threadId,
-			from: Array.isArray(message.from) ? message.from[0] : message.from,
-			subject: message.subject || "",
-			bodyText: message.text || "",
-			bodyHtml: message.html,
-			inReplyTo: message.inReplyTo,
+			messageId,
+			threadId,
+			from,
+			subject,
+			bodyText,
+			bodyHtml,
+			inReplyTo,
 		};
 	}
 

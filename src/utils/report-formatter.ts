@@ -1,4 +1,10 @@
 import type { CostAnalysisResult } from '../services/cost-analysis-service.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export interface PDFReportData {
   metadata: {
@@ -325,5 +331,112 @@ export class ReportFormatter {
     lines.push('Full report attached. Reply to this email to take action.');
 
     return lines.join('\n');
+  }
+
+  /**
+   * Format cost analysis result as HTML email
+   */
+  static formatForEmail(
+    result: CostAnalysisResult,
+    deploymentId: string,
+  ): string {
+    const reportData = this.formatForPDF(result, deploymentId);
+
+    // Load HTML template
+    const templatePath = join(__dirname, '../templates/cost-report-email.html');
+    let html = readFileSync(templatePath, 'utf-8');
+
+    // Replace placeholders
+    html = html.replace('{{SUBJECT}}', reportData.emailSubject);
+    html = html.replace('{{GENERATED_DATE}}', new Date(reportData.metadata.generatedAt).toLocaleString());
+    html = html.replace('{{CURRENT_WEEK_COST}}', reportData.costSummary.lastWeek.formatted);
+    html = html.replace('{{PREVIOUS_WEEK_COST}}', reportData.costSummary.previousWeek.formatted);
+    html = html.replace('{{CHANGE_PERCENT}}', reportData.costSummary.change.formatted);
+    html = html.replace('{{CHANGE_CLASS}}', reportData.costSummary.change.direction);
+    html = html.replace('{{MONTHLY_PROJECTION}}', reportData.projections.monthly.formatted);
+    html = html.replace('{{TREND_DESCRIPTION}}', reportData.projections.monthly.trendDescription);
+    html = html.replace('{{RED_FLAG_COUNT}}', reportData.redFlags.total.toString());
+
+    // Generate top services rows
+    const servicesRows = reportData.topServices.map(service => `
+      <tr>
+        <td><strong>${service.name}</strong></td>
+        <td>${service.currentWeekFormatted}</td>
+        <td style="color: ${service.changePercent >= 0 ? '#dc2626' : '#16a34a'}">${service.changeFormatted}</td>
+        <td>${service.monthlyFormatted}</td>
+      </tr>
+    `).join('');
+    html = html.replace('{{TOP_SERVICES_ROWS}}', servicesRows);
+
+    // Generate red flags section
+    const redFlagsSection = reportData.redFlags.items.slice(0, 5).map(flag => `
+      <div class="red-flag-item ${flag.severity}">
+        <div class="red-flag-header">
+          <span class="red-flag-badge ${flag.severity}">${flag.severity}</span>
+          <span class="red-flag-title">${flag.title}</span>
+        </div>
+        <p class="red-flag-description">${flag.description}</p>
+        ${flag.estimatedSavingsFormatted ? `<p class="red-flag-savings">Potential Savings: ${flag.estimatedSavingsFormatted}</p>` : ''}
+      </div>
+    `).join('');
+    html = html.replace('{{RED_FLAGS_SECTION}}', redFlagsSection || '<p style="color: #64748b;">No critical issues detected.</p>');
+
+    // Generate recommendations section
+    const optimizations = this.generateOptimizations(reportData);
+    const recommendationsSection = optimizations.slice(0, 3).map((opt, index) => `
+      <div class="recommendation-item">
+        <div class="recommendation-number">${index + 1}</div>
+        <div class="recommendation-content">
+          <div class="recommendation-title">${opt.title}</div>
+          <div class="recommendation-savings">Est. Savings: ${opt.savings}</div>
+        </div>
+      </div>
+    `).join('');
+    html = html.replace('{{RECOMMENDATIONS_SECTION}}', recommendationsSection);
+
+    // Generate learning insights section
+    const insightsSection = reportData.learningInsights.map(insight => `
+      <div class="insight-item">
+        ${insight.message}
+        <span class="insight-confidence">(${insight.confidenceFormatted} confidence)</span>
+      </div>
+    `).join('');
+    html = html.replace('{{LEARNING_INSIGHTS_SECTION}}', insightsSection || '<p style="color: #1e3a8a;">Building historical data to provide insights...</p>');
+
+    return html;
+  }
+
+  /**
+   * Generate optimization recommendations from report data
+   */
+  private static generateOptimizations(reportData: PDFReportData): Array<{ title: string; savings: string }> {
+    const optimizations: Array<{ title: string; savings: string }> = [];
+
+    // Extract optimizations from red flags with savings
+    reportData.redFlags.items
+      .filter(flag => flag.estimatedSavings && flag.estimatedSavings > 0)
+      .sort((a, b) => (b.estimatedSavings || 0) - (a.estimatedSavings || 0))
+      .slice(0, 3)
+      .forEach(flag => {
+        optimizations.push({
+          title: flag.title,
+          savings: flag.estimatedSavingsFormatted || '$0.00/month'
+        });
+      });
+
+    // Add generic recommendations if not enough specific ones
+    if (optimizations.length < 3) {
+      const genericRecs = [
+        { title: 'Enable AWS Cost Anomaly Detection', savings: '$0.00/month (preventive)' },
+        { title: 'Review unused EBS volumes', savings: '$15.00/month (estimated)' },
+        { title: 'Consider Reserved Instances for stable workloads', savings: '$50.00/month (estimated)' }
+      ];
+
+      while (optimizations.length < 3 && genericRecs.length > 0) {
+        optimizations.push(genericRecs.shift()!);
+      }
+    }
+
+    return optimizations;
   }
 }

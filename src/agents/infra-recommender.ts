@@ -239,7 +239,7 @@ Provide recommendations as JSON:
     });
 
     // 2. Database (RDS or DocumentDB)
-    if (codeAnalysis.services.database) {
+    if (codeAnalysis.services.database && codeAnalysis.services.database.type) {
       const dbSize = this.getDatabaseSize(dau);
       const dbInstanceClass = DATABASE_SIZING[codeAnalysis.services.database.type]?.[dbSize] || 'db.t3.micro';
       const dbCost = this.estimateRDSCost(dbInstanceClass, region);
@@ -259,7 +259,7 @@ Provide recommendations as JSON:
     }
 
     // 3. Storage (S3)
-    if (codeAnalysis.services.storage) {
+    if (codeAnalysis.services.storage && codeAnalysis.services.storage.type) {
       services.push({
         name: 'S3 Bucket',
         type: 'storage',
@@ -274,7 +274,7 @@ Provide recommendations as JSON:
     }
 
     // 4. Cache (ElastiCache)
-    if (codeAnalysis.services.cache) {
+    if (codeAnalysis.services.cache && codeAnalysis.services.cache.type) {
       const cacheCost = 15; // t3.micro ElastiCache
       services.push({
         name: 'ElastiCache Redis',
@@ -289,7 +289,7 @@ Provide recommendations as JSON:
     }
 
     // 5. Networking (VPC)
-    const needsNAT = !codeAnalysis.services.storage; // Only need NAT if not using S3 with VPC endpoint
+    const needsNAT = !(codeAnalysis.services.storage && codeAnalysis.services.storage.type); // Only need NAT if not using S3 with VPC endpoint
     const networkCost = needsNAT ? 32 : 0; // NAT Gateway cost
 
     services.push({
@@ -302,7 +302,7 @@ Provide recommendations as JSON:
         cidr: '10.0.0.0/16',
         availabilityZones: 2,
         natGateway: needsNAT,
-        vpcEndpoints: codeAnalysis.services.storage ? ['s3'] : []
+        vpcEndpoints: (codeAnalysis.services.storage && codeAnalysis.services.storage.type) ? ['s3'] : []
       },
       monthlyCost: networkCost
     });
@@ -401,11 +401,11 @@ Provide recommendations as JSON:
 
     parts.push(`Selected EC2-based deployment for ${codeAnalysis.framework.framework} application.`);
 
-    if (codeAnalysis.services.database) {
+    if (codeAnalysis.services.database && codeAnalysis.services.database.type) {
       parts.push(`RDS ${codeAnalysis.services.database.type} chosen for managed database with automatic backups.`);
     }
 
-    if (codeAnalysis.services.storage) {
+    if (codeAnalysis.services.storage && codeAnalysis.services.storage.type) {
       parts.push(`S3 for object storage with VPC endpoint to reduce costs.`);
     }
 

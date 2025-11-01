@@ -222,7 +222,6 @@ async function runDemo() {
 	console.log("\n🏆 Sponsor Tool Integration:");
 	console.log("   ✓ Mastra - Multi-agent orchestration");
 	console.log("   ✓ Hyperspell - Self-learning memory layer");
-	console.log("   ✓ Composio - AWS API integration (MCP Gateway)");
 	console.log("   ✓ Moss - Fast semantic code analysis");
 	console.log("   ✓ AgentMail - Email-based human-in-the-loop");
 

@@ -97,7 +97,9 @@ export class EmailCommandParser {
 	 * Parse an email command and extract intent + entities
 	 */
 	static parse(context: EmailCommandContext): ParsedEmailCommand {
-		const text = this.normalizeText(context.bodyText);
+		// Remove quoted text before parsing
+		const cleanedText = this.removeQuotedText(context.bodyText);
+		const text = this.normalizeText(cleanedText);
 
 		// Extract intent
 		const intent = this.extractIntent(text);
@@ -110,12 +112,16 @@ export class EmailCommandParser {
 		// Extract recommendation ID if mentioned
 		const recommendationId = this.extractRecommendationId(text);
 
+		// Infer resource type
+		const resourceType = this.inferResourceType(resources, text);
+
 		// Calculate confidence score
 		const confidence = this.calculateConfidence(
 			intent,
 			text,
 			resources,
 			actions,
+			resourceType,
 		);
 
 		// Determine if confirmation is required
@@ -125,9 +131,9 @@ export class EmailCommandParser {
 			intent,
 			confidence,
 			resourceId: resources.length > 0 ? resources[0] : undefined,
-			resourceType: this.inferResourceType(resources, text),
+			resourceType,
 			recommendationId,
-			rawCommand: context.bodyText.trim(),
+			rawCommand: cleanedText.trim(), // Use cleaned text, not original
 			extractedEntities: {
 				resources,
 				actions,
@@ -142,6 +148,39 @@ export class EmailCommandParser {
 	 */
 	private static normalizeText(text: string): string {
 		return text.toLowerCase().replace(/\s+/g, " ").trim();
+	}
+
+	/**
+	 * Remove quoted text from email replies
+	 * Removes email headers and quoted previous messages
+	 */
+	private static removeQuotedText(text: string): string {
+		const lines = text.split('\n');
+		const cleanedLines: string[] = [];
+		let inQuotedSection = false;
+
+		for (const line of lines) {
+			// Check for email reply headers (e.g., "On ... wrote:")
+			if (/^On\s+.+\s+wrote:$/i.test(line.trim())) {
+				inQuotedSection = true;
+				continue;
+			}
+
+			// Check for lines starting with > (quoted text)
+			if (line.trim().startsWith('>')) {
+				inQuotedSection = true;
+				continue;
+			}
+
+			// If we haven't entered quoted section yet, keep the line
+			if (!inQuotedSection) {
+				cleanedLines.push(line);
+			}
+		}
+
+		// If no lines remain (entire message was quoted), return original
+		const cleaned = cleanedLines.join('\n').trim();
+		return cleaned.length > 0 ? cleaned : text;
 	}
 
 	/**
@@ -173,6 +212,31 @@ export class EmailCommandParser {
 					}
 				}
 			}
+		}
+
+		// Apply priority boosts for more specific intents
+		// get_details should be prioritized when "show" or "details" is mentioned
+		if (/\b(show|details|explain|tell|info|breakdown)\b/i.test(text)) {
+			scores.get_details += 2;
+		}
+
+		// stop_resource should be prioritized when "stop" appears with a resource
+		if (/\b(stop|terminate|shutdown)\b/i.test(text) &&
+		    /\b(nat|gateway|ec2|rds|instance|server|database|resource)\b/i.test(text)) {
+			scores.stop_resource += 3;
+			scores.reject_recommendation *= 0.3;
+		}
+
+		// start_resource should be prioritized when "start" appears with a resource
+		if (/\b(start|enable|resume)\b/i.test(text) &&
+		    /\b(nat|gateway|ec2|rds|instance|server|database|resource)\b/i.test(text)) {
+			scores.start_resource += 3;
+		}
+
+		// Confirmation should only match very short responses
+		if (text.split(' ').length > 3) {
+			scores.confirm_action *= 0.5;
+			scores.cancel_action *= 0.5;
 		}
 
 		// Find highest scoring intent
@@ -290,6 +354,7 @@ export class EmailCommandParser {
 		text: string,
 		resources: string[],
 		actions: string[],
+		resourceType?: string,
 	): number {
 		let confidence = 0;
 
@@ -303,14 +368,24 @@ export class EmailCommandParser {
 			confidence += 0.3;
 		}
 
+		// Boost for inferred resource type (even without explicit ID)
+		if (resourceType && resources.length === 0) {
+			confidence += 0.2;
+		}
+
 		// Boost for action verbs
 		if (actions.length > 0) {
 			confidence += 0.2;
 		}
 
 		// Boost for short, direct commands (less ambiguity)
-		if (text.split(" ").length <= 10) {
+		if (text.split(" ").length <= 10 && text.split(" ").length >= 3) {
 			confidence += 0.1;
+		}
+
+		// Extra boost for get_details with resource type (very common pattern)
+		if (intent === "get_details" && resourceType) {
+			confidence += 0.15;
 		}
 
 		return Math.min(confidence, 1.0);
@@ -378,13 +453,28 @@ export class EmailCommandParser {
 	 * Check if a command is ambiguous and needs clarification
 	 */
 	static isAmbiguous(parsed: ParsedEmailCommand): boolean {
-		// Low confidence means ambiguity
-		if (parsed.confidence < 0.5) {
+		// Unknown intent is always ambiguous
+		if (parsed.intent === "unknown") {
 			return true;
 		}
 
-		// Unknown intent is ambiguous
-		if (parsed.intent === "unknown") {
+		// get_details with a resource type is clear enough (even with lower confidence)
+		if (parsed.intent === "get_details" && parsed.resourceType) {
+			return false;
+		}
+
+		// Approve/reject recommendations with ID are clear
+		if ((parsed.intent === "approve_recommendation" || parsed.intent === "reject_recommendation") && parsed.recommendationId) {
+			return false;
+		}
+
+		// Confirmation/cancellation intents are clear (simple yes/no)
+		if (parsed.intent === "confirm_action" || parsed.intent === "cancel_action") {
+			return false;
+		}
+
+		// Low confidence means ambiguity (but we've already handled exceptions above)
+		if (parsed.confidence < 0.5) {
 			return true;
 		}
 
