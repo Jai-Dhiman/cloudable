@@ -303,50 +303,7 @@ phases:
   }
 });
 
-// Check build status endpoint
-app.get('/api/deploy/status/:buildId', async (req, res) => {
-  try {
-    const { buildId } = req.params;
-    const region = req.query.region || 'us-east-1';
-
-    const awsConfig = {
-      region,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-      }
-    };
-
-    const codeBuildClient = new CodeBuildClient(awsConfig);
-    const response = await codeBuildClient.send(new BatchGetBuildsCommand({ ids: [buildId] }));
-    const build = response.builds?.[0];
-
-    if (!build) {
-      return res.status(404).json({ success: false, error: 'Build not found' });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        status: build.buildStatus,
-        phase: build.currentPhase,
-        logs: {
-          groupName: build.logs?.groupName,
-          streamName: build.logs?.streamName
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Status check error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Status check failed'
-    });
-  }
-});
-
-// Fetch CloudWatch logs endpoint
+// Fetch CloudWatch logs endpoint (MUST come BEFORE /:buildId to avoid route collision)
 app.get('/api/deploy/status/logs', async (req, res) => {
   try {
     const { groupName, streamName, region = 'us-east-1' } = req.query;
@@ -388,6 +345,49 @@ app.get('/api/deploy/status/logs', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch logs'
+    });
+  }
+});
+
+// Check build status endpoint
+app.get('/api/deploy/status/:buildId', async (req, res) => {
+  try {
+    const { buildId } = req.params;
+    const region = req.query.region || 'us-east-1';
+
+    const awsConfig = {
+      region,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    };
+
+    const codeBuildClient = new CodeBuildClient(awsConfig);
+    const response = await codeBuildClient.send(new BatchGetBuildsCommand({ ids: [buildId] }));
+    const build = response.builds?.[0];
+
+    if (!build) {
+      return res.status(404).json({ success: false, error: 'Build not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        status: build.buildStatus,
+        phase: build.currentPhase,
+        logs: {
+          groupName: build.logs?.groupName,
+          streamName: build.logs?.streamName
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Status check error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Status check failed'
     });
   }
 });
