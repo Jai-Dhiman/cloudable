@@ -31,6 +31,10 @@ export default class Deploy extends Command {
       description: 'Build Docker image remotely using AWS CodeBuild',
       default: false,
     }),
+    'image-uri': Flags.string({
+      description: 'Pre-built Docker image URI (skips Docker build step)',
+      required: false,
+    }),
   };
 
   static args = {
@@ -67,17 +71,26 @@ export default class Deploy extends Command {
       console.log(chalk.gray(`   Region: ${flags.region}`));
       console.log(chalk.gray(`   Service: EC2 (Docker container)\n`));
 
-      // STEP 2: Build & Push Docker Image
-      console.log(chalk.bold.cyan('📦 Step 2/4: Build & Push Docker Image\n'));
+      // STEP 2: Build & Push Docker Image (or use pre-built image)
+      let imageUri: string;
+      
+      if (flags['image-uri']) {
+        // Use pre-built image (e.g., from backend API)
+        console.log(chalk.bold.cyan('📦 Step 2/4: Using Pre-Built Docker Image\n'));
+        imageUri = flags['image-uri'];
+        console.log(chalk.green(`✅ Using image: ${imageUri}\n`));
+      } else {
+        // Build Docker image (existing flow)
+        console.log(chalk.bold.cyan('📦 Step 2/4: Build & Push Docker Image\n'));
 
-      const dockerBuilder = new DockerBuilder(provider, {
-        region: flags.region,
-        accountId,
-      });
+        const dockerBuilder = new DockerBuilder(provider, {
+          region: flags.region,
+          accountId,
+        });
 
-      const imageUri = await dockerBuilder.buildAndPush(args.appName, flags.remote);
-
-      console.log(chalk.green(`\n✅ Docker image ready: ${imageUri}\n`));
+        imageUri = await dockerBuilder.buildAndPush(args.appName, flags.remote);
+        console.log(chalk.green(`\n✅ Docker image ready: ${imageUri}\n`));
+      }
 
       // STEP 3: Generate Terraform Configuration
       console.log(chalk.bold.cyan('📝 Step 3/4: Generate Terraform Configuration\n'));

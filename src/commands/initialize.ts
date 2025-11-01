@@ -201,7 +201,7 @@ export default class Initialize extends Command {
         return;
       }
 
-      // Phase 4: Deployment via Backend API
+      // Phase 4: Deployment (detect mode based on AWS credentials)
       this.log(chalk.cyan('\nStep 3: Deploying your application...\n'));
 
       // Step 4a: Generate Dockerfile with AI
@@ -210,12 +210,27 @@ export default class Initialize extends Command {
       const dockerCmd = new Docker(this.argv, this.config);
       await dockerCmd.run();
 
-      // Step 4b: Deploy via backend API (no AWS credentials needed!)
-      this.log(chalk.bold('\n☁️  Deploying to cloud infrastructure...\n'));
-      this.log(chalk.gray('Using Cloudable deployment service...\n'));
+      // Check if user has AWS credentials configured locally
+      const hasLocalAWSCreds = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
       
-      const { BackendDeployService } = await import('../services/backend-deploy.service.js');
-      const deployService = new BackendDeployService();
+      if (hasLocalAWSCreds) {
+        // OLD FLOW: User has AWS credentials - use local Docker build + Deploy command
+        this.log(chalk.bold('\n☁️  Deploying with local AWS credentials...\n'));
+        
+        const Deploy = (await import('./deploy.js')).default;
+        const deployCmd = new Deploy(
+          [projectName, '--remote'],
+          this.config
+        );
+        await deployCmd.run();
+        
+      } else {
+        // NEW FLOW: No AWS credentials - use backend API
+        this.log(chalk.bold('\n☁️  Deploying to cloud infrastructure...\n'));
+        this.log(chalk.gray('Using Cloudable deployment service...\n'));
+        
+        const { BackendDeployService } = await import('../services/backend-deploy.service.js');
+        const deployService = new BackendDeployService();
       
       try {
         // Upload and start build
@@ -234,23 +249,46 @@ export default class Initialize extends Command {
 
         console.log(chalk.green(`\n✅ Docker image ready: ${deployResult.imageUri}\n`));
 
-        // Continue with Terraform deployment
-        this.log(chalk.bold('\n📝 Generating infrastructure configuration...\n'));
+        // Continue with Terraform deployment (skip Docker build since backend already did it)
+        this.log(chalk.bold('\n📝 Step 3/4: Generate Terraform Configuration\n'));
         
-        const Deploy = (await import('./deploy.js')).default;
-        const deployCmd = new Deploy(
-          [projectName],
-          this.config
-        );
+        const { TerraformGenerator } = await import('../terraform/terraform-generator.js');
+        const { TerraformRunner } = await import('../terraform/terraform-runner.js');
+        const { TerraformOutputParser } = await import('../terraform/terraform-output-parser.js');
         
-        await deployCmd.run();
-        
-        // Deploy command already shows success message with real URL
-        // No need to show duplicate message here
+        const terraformDir = './terraform';
+        const terraformGen = new TerraformGenerator(terraformDir);
 
-      } catch (error: any) {
-        this.log(chalk.red('\n❌ Deployment failed: ' + error.message));
-        throw error;
+        await terraformGen.generate({
+          provider: 'aws',
+          service: 'ec2',
+          appName: projectName,
+          region: userAnswers.awsRegion || 'us-east-1',
+          imageUri: deployResult.imageUri,
+        });
+
+        // Step 4: Deploy with Terraform
+        this.log(chalk.bold('\n🏗️  Step 4/4: Deploy Infrastructure\n'));
+
+        const terraformRunner = new TerraformRunner(terraformDir);
+        await terraformRunner.init();
+        await terraformRunner.plan();
+        await terraformRunner.apply();
+
+        // Step 5: Get and Display URL
+        const outputs = await terraformRunner.getOutputs() as any;
+
+        if (TerraformOutputParser.validate(outputs)) {
+          TerraformOutputParser.displayResults(outputs);
+        }
+
+          console.log(chalk.gray('═'.repeat(60)));
+          console.log(chalk.bold.green('\n✅ Deployment Complete!\n'));
+
+        } catch (error: any) {
+          this.log(chalk.red('\n❌ Deployment failed: ' + error.message));
+          throw error;
+        }
       }
 
     } catch (error) {
