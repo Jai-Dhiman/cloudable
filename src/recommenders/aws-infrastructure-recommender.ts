@@ -1,7 +1,7 @@
 export class AWSInfrastructureRecommender {
     analysis;
     options;
-    constructor(analysis, options = {}) {
+    constructor(analysis: any, options: any = {}) {
         this.analysis = analysis;
         this.options = options;
     }
@@ -35,7 +35,7 @@ export class AWSInfrastructureRecommender {
         // Default
         return framework.type;
     }
-    generateRecommendations(projectType) {
+    generateRecommendations(projectType: any) {
         switch (projectType) {
             case 'static': {
                 return this.getStaticSiteRecommendations();
@@ -344,18 +344,18 @@ export class AWSInfrastructureRecommender {
             ...this.getFullstackRecommendations().filter(opt => opt.name !== 'App Runner (Easiest)'),
         ];
     }
-    sortByPriority(options) {
+    sortByPriority(options: any) {
         const priority = this.options.priority || 'ease';
         if (priority === 'cost') {
-            return options.sort((a, b) => a.estimatedCost.monthly - b.estimatedCost.monthly);
+            return options.sort((a: any, b: any) => a.estimatedCost.monthly - b.estimatedCost.monthly);
         }
         if (priority === 'ease') {
-            const difficultyScore = { easy: 1, medium: 2, hard: 3 };
-            return options.sort((a, b) => difficultyScore[a.difficulty] - difficultyScore[b.difficulty]);
+            const difficultyScore: any = { easy: 1, medium: 2, hard: 3 };
+            return options.sort((a: any, b: any) => difficultyScore[a.difficulty] - difficultyScore[b.difficulty]);
         }
         if (priority === 'performance') {
             // ECS/EC2 first, then Lambda
-            return options.sort((a, b) => {
+            return options.sort((a: any, b: any) => {
                 if (a.name.includes('ECS'))
                     return -1;
                 if (b.name.includes('ECS'))
@@ -365,7 +365,7 @@ export class AWSInfrastructureRecommender {
         }
         return options;
     }
-    generateReasoning(projectType, recommended) {
+    generateReasoning(projectType: any, recommended: any) {
         const { framework, services } = this.analysis;
         let reasoning = `Based on your ${framework.name} ${projectType} app, `;
         if (projectType === 'static') {

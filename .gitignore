@@ -52,3 +52,4 @@ temp/
 *-error.log
 oclif.manifest.json
 .oclif.manifest.json
+.env

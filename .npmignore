@@ -12,4 +12,6 @@ tests/
 .vscode/
 .idea/
 docs/
+.env
+.env.*
 

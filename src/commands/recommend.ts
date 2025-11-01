@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import ora from 'ora';
 import { ProjectAnalyzer } from '../analyzers/project-analyzer.js';
 import { AWSInfrastructureRecommender } from '../recommenders/aws-infrastructure-recommender.js';
+import { aiHelper } from '../utils/ai-helper.js';
 export default class Recommend extends Command {
     static description = 'Get AWS infrastructure recommendations for your project';
     static examples = [
@@ -63,12 +64,20 @@ export default class Recommend extends Command {
             spinner2.succeed('Recommendations ready');
             // Display recommendations
             this.displayRecommendation(recommendation, flags.all);
+            // AI-powered recommendation
+            if (aiHelper.isEnabled()) {
+                const aiSpinner = ora('Getting AI recommendation...').start();
+                const aiRecommendation = await aiHelper.getInfrastructureRecommendation(analysis);
+                aiSpinner.succeed('AI recommendation ready');
+                this.log('\nAI-Powered Recommendation:');
+                this.log(`${aiRecommendation}\n`);
+            }
         }
         catch (error) {
             this.error(`Failed to generate recommendations: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
-    displayAnalysis(analysis) {
+    displayAnalysis(analysis: any) {
         this.log(`\nProject: ${analysis.projectName}`);
         this.log(`Framework: ${analysis.framework.name} ${analysis.framework.version || ''}`);
         this.log(`Runtime: ${analysis.framework.runtime}`);
@@ -88,7 +97,7 @@ export default class Recommend extends Command {
         this.log('─'.repeat(60));
         this.log('');
     }
-    displayRecommendation(recommendation, showAll) {
+    displayRecommendation(recommendation: any, showAll: any) {
         this.log(`\nProject Type: ${recommendation.projectType.toUpperCase()}\n`);
         // Show recommended option first
         this.log('RECOMMENDED DEPLOYMENT\n');
@@ -109,7 +118,7 @@ export default class Recommend extends Command {
             this.log(`\n${recommendation.recommendations.length - 1} other option(s) available. Use --all to see them.\n`);
         }
     }
-    displayOption(option, isRecommended) {
+    displayOption(option: any, isRecommended: any) {
         const marker = isRecommended ? '[RECOMMENDED]' : '';
         this.log(`${option.name} ${marker}`);
         this.log(`   ${option.description}`);
