@@ -8,7 +8,7 @@ import type { PDFReportData } from '../utils/report-formatter.js';
 import fs from 'fs';
 import path from 'path';
 
-// Professional color scheme with high contrast
+// Professional color scheme - all text in black for maximum visibility
 const COLORS = {
 	primary: '#2563eb', // Blue
 	secondary: '#7c3aed', // Purple
@@ -18,9 +18,9 @@ const COLORS = {
 	info: '#0891b2', // Cyan
 	bgLight: '#f8fafc',
 	bgPrimary: '#1e40af',
-	textDark: '#0f172a', // Very dark for high contrast
-	textMedium: '#475569',
-	textLight: '#64748b',
+	textDark: '#000000', // Pure black for all text
+	textMedium: '#000000', // Pure black
+	textLight: '#000000', // Pure black
 	border: '#cbd5e1',
 	chart1: '#3b82f6', // Blue
 	chart2: '#8b5cf6', // Purple
@@ -30,19 +30,19 @@ const COLORS = {
 	chart6: '#06b6d4', // Cyan
 };
 
-// Layout constants - optimized for readability and no wasted space
+// Layout constants - optimized for minimal space usage, compact layout
 const LAYOUT = {
 	margin: 50,
 	contentWidth: 512,
-	sectionSpacing: 20,
-	elementSpacing: 10,
-	lineHeight: 1.4,
-	headingLineHeight: 1.3,
-	boxPadding: 12,
-	tableRowHeight: 26,
-	cardSpacing: 12,
+	sectionSpacing: 12,
+	elementSpacing: 6,
+	lineHeight: 1.3,
+	headingLineHeight: 1.2,
+	boxPadding: 10,
+	tableRowHeight: 22,
+	cardSpacing: 8,
 	pageBottom: 750,
-	headerHeight: 65,
+	headerHeight: 60,
 	minFontSize: 10,
 	bodyFontSize: 11,
 	headingFontSize: 16,
@@ -90,7 +90,7 @@ export class PDFGeneratorService {
 			.font('Helvetica-Bold')
 			.text(title, LAYOUT.margin, y + 22);
 
-		return y + LAYOUT.headerHeight + 10;
+		return y + LAYOUT.headerHeight + 8;
 	}
 
 	/**
@@ -116,9 +116,9 @@ export class PDFGeneratorService {
 		const valueColor = options?.valueColor || COLORS.textDark;
 		const bold = options?.bold !== false;
 
-		// Label - always use textLight for labels
+		// Label - black text
 		doc.fontSize(labelSize)
-			.fillColor(COLORS.textLight)
+			.fillColor(COLORS.textDark)
 			.font('Helvetica')
 			.text(label, x, y);
 
@@ -130,7 +130,7 @@ export class PDFGeneratorService {
 				width: LAYOUT.contentWidth - labelWidth - LAYOUT.margin,
 			});
 
-		return y + Math.max(valueSize, labelSize) * 1.3 + 8;
+		return y + Math.max(valueSize, labelSize) * 1.2 + 5;
 	}
 
 	/**
@@ -215,9 +215,9 @@ export class PDFGeneratorService {
 			.lineWidth(2)
 			.stroke();
 
-		// Label - always dark text for visibility
+		// Label - black text
 		doc.fontSize(10)
-			.fillColor(COLORS.textLight)
+			.fillColor(COLORS.textDark)
 			.font('Helvetica')
 			.text(label, x + LAYOUT.boxPadding, y + LAYOUT.boxPadding);
 
@@ -227,12 +227,12 @@ export class PDFGeneratorService {
 			.font('Helvetica-Bold')
 			.text(value, x + LAYOUT.boxPadding, y + LAYOUT.boxPadding + 12);
 
-		// Subtext if provided
+		// Subtext if provided - black text
 		if (subtext) {
 			doc.fontSize(9)
-				.fillColor(COLORS.textMedium)
+				.fillColor(COLORS.textDark)
 				.font('Helvetica')
-				.text(subtext, x + LAYOUT.boxPadding, y + height - 20, {
+				.text(subtext, x + LAYOUT.boxPadding, y + height - 18, {
 					width: width - LAYOUT.boxPadding * 2,
 				});
 		}
@@ -294,17 +294,17 @@ export class PDFGeneratorService {
 				.lineWidth(0.5)
 				.stroke();
 
-			// Row content - always dark text
-			currentX = x + LAYOUT.boxPadding;
-			doc.fontSize(LAYOUT.bodyFontSize)
-				.fillColor(COLORS.textDark)
-				.font('Helvetica');
-			row.forEach((cell, cellIndex) => {
-				doc.text(cell, currentX, currentY + 8, {
-					width: columnWidths[cellIndex] - LAYOUT.boxPadding * 2,
-				});
-				currentX += columnWidths[cellIndex];
+		// Row content - black text
+		currentX = x + LAYOUT.boxPadding;
+		doc.fontSize(LAYOUT.bodyFontSize)
+			.fillColor(COLORS.textDark)
+			.font('Helvetica');
+		row.forEach((cell, cellIndex) => {
+			doc.text(cell, currentX, currentY + 6, {
+				width: columnWidths[cellIndex] - LAYOUT.boxPadding * 2,
 			});
+			currentX += columnWidths[cellIndex];
+		});
 
 			currentY += rowHeight;
 		});
@@ -324,7 +324,7 @@ export class PDFGeneratorService {
 		data: ChartData,
 		title: string,
 	): void {
-		// Title - dark text, bold
+		// Title - black text, bold
 		doc.fontSize(LAYOUT.headingFontSize - 2)
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
@@ -382,11 +382,11 @@ export class PDFGeneratorService {
 					});
 			}
 
-			// Label below - dark text
+			// Label below - black text
 			doc.fontSize(9)
 				.fillColor(COLORS.textDark)
 				.font('Helvetica')
-				.text(label, barX, chartY + chartHeight + 5, {
+				.text(label, barX, chartY + chartHeight + 4, {
 					width: barWidth,
 					align: 'center',
 				});
@@ -455,7 +455,7 @@ export class PDFGeneratorService {
 					.lineWidth(0.5)
 					.stroke();
 				
-				// Legend text - dark for visibility
+				// Legend text - black
 				doc.fontSize(9)
 					.fillColor(COLORS.textDark)
 					.font('Helvetica')
@@ -478,7 +478,7 @@ export class PDFGeneratorService {
 			.lineWidth(1)
 			.stroke();
 		
-		// Total in center
+		// Total in center - black text
 		doc.fontSize(12)
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
@@ -487,7 +487,7 @@ export class PDFGeneratorService {
 				align: 'center',
 			});
 		doc.fontSize(11)
-			.fillColor(COLORS.primary)
+			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
 			.text(`$${total.toFixed(2)}`, centerX - 25, centerY + 2, {
 				width: 50,
@@ -554,7 +554,7 @@ export class PDFGeneratorService {
 		reportId?: string,
 	): void {
 		doc.fontSize(9)
-			.fillColor(COLORS.textLight)
+			.fillColor(COLORS.textDark)
 			.font('Helvetica')
 			.text(
 				'Generated by Cloudable - Intelligent AWS Cost Monitoring',
@@ -736,7 +736,7 @@ export class PDFGeneratorService {
 			`${data.redFlags.total} total`,
 		);
 
-		yPos += boxHeight + LAYOUT.sectionSpacing;
+		yPos += boxHeight + 10;
 
 		// Charts side by side
 		if (
@@ -778,7 +778,7 @@ export class PDFGeneratorService {
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
 			.text('Next Week Prediction', LAYOUT.margin, yPos);
-		yPos += 22;
+		yPos += 18;
 
 		const [nr, ng, nb] = this.hexToRgb(COLORS.info);
 		doc.rect(LAYOUT.margin, yPos, LAYOUT.contentWidth, 75)
@@ -804,14 +804,14 @@ export class PDFGeneratorService {
 			{ labelWidth: 150, valueColor: COLORS.textDark },
 		);
 
-		yPos += LAYOUT.sectionSpacing;
+		yPos += 12;
 
 		// Monthly projection
 		doc.fontSize(LAYOUT.headingFontSize)
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
 			.text('Monthly Projection', LAYOUT.margin, yPos);
-		yPos += 22;
+		yPos += 18;
 
 		doc.rect(LAYOUT.margin, yPos, LAYOUT.contentWidth, 75)
 			.fillColor(`rgb(${nr},${ng},${nb})`)
@@ -848,21 +848,21 @@ export class PDFGeneratorService {
 			{ labelWidth: 150, valueColor: COLORS.textDark },
 		);
 
-		yPos += LAYOUT.sectionSpacing;
+		yPos += 12;
 
 		// Methodology
 		doc.fontSize(14)
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
 			.text('Methodology', LAYOUT.margin, yPos);
-		yPos += LAYOUT.elementSpacing;
+		yPos += 10;
 
 		doc.fontSize(LAYOUT.bodyFontSize)
-			.fillColor(COLORS.textMedium)
+			.fillColor(COLORS.textDark)
 			.font('Helvetica')
 			.text(data.projections.nextWeek.methodology, LAYOUT.margin, yPos, {
 				width: LAYOUT.contentWidth,
-				lineGap: 4,
+				lineGap: 3,
 			});
 
 		// ========== TOP SERVICES ANALYSIS PAGE ==========
@@ -870,35 +870,34 @@ export class PDFGeneratorService {
 			doc.addPage();
 			yPos = this.drawSectionHeader(doc, 'Top Services Analysis', 0);
 
-			// Table
+			// Draw table with proper formatting - all text in black
 			const headers = ['Service', 'Current Week', 'Change %', 'Monthly Projection'];
-			const columnWidths = [190, 120, 95, 117];
-			const rows = data.topServices.map((service) => [
-				service.name,
-				service.currentWeekFormatted,
-				service.changeFormatted,
-				service.monthlyFormatted,
-			]);
-
-			yPos = this.drawDataTable(doc, LAYOUT.margin, yPos, headers, rows, columnWidths);
-
-			// Color-code change percentages
-			let rowY = yPos - (rows.length * LAYOUT.tableRowHeight);
-			rows.forEach((_, index) => {
-				const service = data.topServices[index];
-				const changeColor =
-					service.changePercent > 0 ? COLORS.danger : COLORS.success;
-				doc.fontSize(LAYOUT.bodyFontSize)
-					.fillColor(changeColor)
-					.font('Helvetica-Bold')
-					.text(
-						service.changeFormatted,
-						LAYOUT.margin + columnWidths[0] + columnWidths[1] + LAYOUT.boxPadding,
-						rowY + 8,
-						{ width: columnWidths[2] - LAYOUT.boxPadding * 2 },
-					);
-				rowY += LAYOUT.tableRowHeight;
+			const columnWidths = [200, 130, 90, 112];
+			
+			// Build rows with all data properly formatted
+			const rows = data.topServices.map((service) => {
+				const changeText = service.changeFormatted;
+				return [
+					service.name,
+					service.currentWeekFormatted,
+					changeText,
+					service.monthlyFormatted,
+				];
 			});
+
+			// Draw the complete table
+			yPos = this.drawDataTable(doc, LAYOUT.margin, yPos, headers, rows, columnWidths);
+			
+			// Add a bar chart below the table for visual representation
+			if (data.topServices.length > 0) {
+				yPos += 10;
+				const chartData: ChartData = {
+					labels: data.topServices.map((s) => s.name),
+					values: data.topServices.map((s) => s.currentWeekCost),
+					maxValue: Math.max(...data.topServices.map((s) => s.currentWeekCost)) * 1.2,
+				};
+				this.drawBarChart(doc, LAYOUT.margin, yPos, LAYOUT.contentWidth, 180, chartData, 'Top Services Cost Breakdown');
+			}
 		}
 
 		// ========== SUMMARY STATISTICS PAGE ==========
@@ -1004,7 +1003,7 @@ export class PDFGeneratorService {
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
 			.text('Potential Monthly Savings', LAYOUT.margin, yPos);
-		yPos += 22;
+		yPos += 18;
 
 		const [sr, sg, sb] = this.hexToRgb(COLORS.success);
 		doc.rect(LAYOUT.margin, yPos, LAYOUT.contentWidth, 50)
@@ -1031,7 +1030,7 @@ export class PDFGeneratorService {
 			.fillColor(COLORS.textDark)
 			.font('Helvetica-Bold')
 			.text('Issues by Category', LAYOUT.margin, yPos);
-		yPos += LAYOUT.elementSpacing + 2;
+		yPos += 10;
 
 		const categoryHeaders = ['Category', 'Count'];
 		const categoryColumnWidths = [330, 182];
@@ -1054,7 +1053,7 @@ export class PDFGeneratorService {
 			categoryColumnWidths,
 		);
 
-		yPos += LAYOUT.sectionSpacing;
+		yPos += 10;
 
 		// Individual red flags - ALL of them
 		if (data.redFlags.items.length > 0) {
@@ -1062,7 +1061,7 @@ export class PDFGeneratorService {
 				.fillColor(COLORS.textDark)
 				.font('Helvetica-Bold')
 				.text('Detailed Issues', LAYOUT.margin, yPos);
-			yPos += LAYOUT.elementSpacing + 5;
+			yPos += 12;
 
 			data.redFlags.items.forEach((flag) => {
 				yPos = this.addPageBreak(doc, yPos, 110);
@@ -1094,7 +1093,7 @@ export class PDFGeneratorService {
 					.font('Helvetica-Bold')
 					.text(flag.severity.toUpperCase(), LAYOUT.margin + LAYOUT.boxPadding + 5, yPos + LAYOUT.boxPadding + 5);
 
-				// Title - dark text for visibility
+				// Title - black text
 				doc.fontSize(12)
 					.fillColor(COLORS.textDark)
 					.font('Helvetica-Bold')
@@ -1102,28 +1101,28 @@ export class PDFGeneratorService {
 						width: LAYOUT.contentWidth - 200,
 					});
 
-				// Category
+				// Category - black text
 				doc.fontSize(9)
-					.fillColor(COLORS.textMedium)
+					.fillColor(COLORS.textDark)
 					.font('Helvetica')
 					.text(`Category: ${flag.category}`, LAYOUT.margin + LAYOUT.boxPadding + 85, yPos + LAYOUT.boxPadding + 16);
 
-				// Description - dark text
+				// Description - black text
 				doc.fontSize(LAYOUT.bodyFontSize)
 					.fillColor(COLORS.textDark)
 					.font('Helvetica')
-					.text(flag.description, LAYOUT.margin + LAYOUT.boxPadding, yPos + LAYOUT.boxPadding + 40, {
+					.text(flag.description, LAYOUT.margin + LAYOUT.boxPadding, yPos + LAYOUT.boxPadding + 38, {
 						width: LAYOUT.contentWidth - LAYOUT.boxPadding * 2,
-						lineGap: 3,
+						lineGap: 2,
 					});
 
-				// Details row
-				let detailY = yPos + LAYOUT.boxPadding + 70;
+				// Details row - black text
+				let detailY = yPos + LAYOUT.boxPadding + 68;
 				let detailX = LAYOUT.margin + LAYOUT.boxPadding;
 
 				if (flag.resourceId) {
 					doc.fontSize(9)
-						.fillColor(COLORS.textMedium)
+						.fillColor(COLORS.textDark)
 						.font('Helvetica')
 						.text(`Resource: ${flag.resourceId}`, detailX, detailY);
 					detailX += 180;
@@ -1131,7 +1130,7 @@ export class PDFGeneratorService {
 
 				if (flag.resourceType) {
 					doc.fontSize(9)
-						.fillColor(COLORS.textMedium)
+						.fillColor(COLORS.textDark)
 						.font('Helvetica')
 						.text(`Type: ${flag.resourceType}`, detailX, detailY);
 					detailX += 120;
@@ -1139,14 +1138,14 @@ export class PDFGeneratorService {
 
 				if (flag.estimatedSavingsFormatted) {
 					doc.fontSize(10)
-						.fillColor(COLORS.success)
+						.fillColor(COLORS.textDark)
 						.font('Helvetica-Bold')
 						.text(`Savings: ${flag.estimatedSavingsFormatted}`, detailX, detailY);
 				}
 
-				// Detection date
+				// Detection date - black text
 				doc.fontSize(9)
-					.fillColor(COLORS.textLight)
+					.fillColor(COLORS.textDark)
 					.font('Helvetica')
 					.text(
 						`Detected: ${new Date(flag.detectedAt).toLocaleDateString()}`,
@@ -1154,10 +1153,10 @@ export class PDFGeneratorService {
 						yPos + LAYOUT.boxPadding,
 					);
 
-				// Auto-fixable indicator
+				// Auto-fixable indicator - black text
 				if (flag.autoFixable && flag.fixCommand) {
 					doc.fontSize(9)
-						.fillColor(COLORS.info)
+						.fillColor(COLORS.textDark)
 						.font('Helvetica-Bold')
 						.text(
 							`Auto-fix: ${flag.fixCommand}`,
@@ -1166,7 +1165,7 @@ export class PDFGeneratorService {
 						);
 				}
 
-				yPos += 105 + LAYOUT.cardSpacing;
+				yPos += 95 + LAYOUT.cardSpacing;
 			});
 		}
 
@@ -1198,18 +1197,18 @@ export class PDFGeneratorService {
 					.font('Helvetica-Bold')
 					.text(insight.type.toUpperCase(), LAYOUT.margin + LAYOUT.boxPadding + 5, yPos + LAYOUT.boxPadding + 4);
 
-				// Message - dark text
+				// Message - black text
 				doc.fontSize(LAYOUT.bodyFontSize)
 					.fillColor(COLORS.textDark)
 					.font('Helvetica')
 					.text(insight.message, LAYOUT.margin + LAYOUT.boxPadding, yPos + LAYOUT.boxPadding + 25, {
 						width: LAYOUT.contentWidth - LAYOUT.boxPadding * 2,
-						lineGap: 3,
+						lineGap: 2,
 					});
 
-				// Confidence and source
+				// Confidence and source - black text
 				doc.fontSize(9)
-					.fillColor(COLORS.textMedium)
+					.fillColor(COLORS.textDark)
 					.font('Helvetica')
 					.text(
 						`Confidence: ${insight.confidenceFormatted} | Source: ${insight.source}`,
@@ -1252,13 +1251,13 @@ export class PDFGeneratorService {
 						align: 'center',
 					});
 
-				// Recommendation text - dark for visibility
+				// Recommendation text - black text
 				doc.fontSize(LAYOUT.bodyFontSize)
 					.fillColor(COLORS.textDark)
 					.font('Helvetica')
 					.text(rec, LAYOUT.margin + 45, yPos + 18, {
 						width: LAYOUT.contentWidth - 60,
-						lineGap: 4,
+						lineGap: 3,
 					});
 
 				yPos += 70 + LAYOUT.cardSpacing;
