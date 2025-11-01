@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { DockerGenerationAgent } from '../ai/docker-agent.js';
 import { FileAnalyzer } from '../ai/file-analyzer.js';
+import { PreflightAgent } from '../ai/preflight-agent.js';
 
 /**
  * AI-powered Docker configuration generator
@@ -32,6 +33,10 @@ export class AIDockerGenerator {
       console.log(chalk.bold.cyan('\n🤖 AI-Powered Docker Configuration Generator\n'));
       console.log(chalk.gray('Using OpenAI via Mastra AI framework\n'));
 
+      // PHASE 0: Pre-Flight Checks & Fixes
+      const preflightAgent = new PreflightAgent('.');
+      const preflightAnalysis = await preflightAgent.runPreflightChecks();
+
       // PHASE 1: Directory Analysis
       const spinner1 = ora('Analyzing project structure...').start();
       const directoryTree = FileAnalyzer.getDirectoryTree('.', 4);
@@ -59,9 +64,9 @@ export class AIDockerGenerator {
       const files = FileAnalyzer.readFiles(filesToRead);
       spinner3.succeed(chalk.green(`✅ Read ${files.length} files`));
 
-      // PHASE 4: AI Configuration Generation
+      // PHASE 4: AI Configuration Generation (with pre-flight context)
       const spinner4 = ora('AI is generating Docker configurations...').start();
-      const configs = await this.agent.generateConfigurations(files);
+      const configs = await this.agent.generateConfigurations(files, preflightAnalysis);
       spinner4.succeed(chalk.green('✅ Docker configurations generated'));
 
       // PHASE 5: Write Files

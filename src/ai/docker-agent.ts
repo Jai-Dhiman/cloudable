@@ -20,7 +20,7 @@ export class DockerGenerationAgent {
     this.agent = new Agent({
       name: 'docker-generator',
       instructions: 'You are an expert DevOps engineer specializing in Docker containerization and cloud deployments.',
-      model: openai('gpt-4-turbo'),
+      model: openai('gpt-4o'),
     });
   }
 
@@ -71,8 +71,8 @@ export class DockerGenerationAgent {
   /**
    * Phase 2: Generate Docker configurations
    */
-  async generateConfigurations(files: ProjectFile[]): Promise<DockerConfiguration> {
-    const prompt = createDockerfileGenerationPrompt(files);
+  async generateConfigurations(files: ProjectFile[], preflightAnalysis?: any): Promise<DockerConfiguration> {
+    const prompt = createDockerfileGenerationPrompt(files, preflightAnalysis);
 
     try {
       const response = await this.agent.generate(prompt);

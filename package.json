@@ -52,6 +52,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.59",
     "@aws-sdk/client-codebuild": "^3.922.0",
+    "@aws-sdk/client-ec2": "^3.922.0",
     "@aws-sdk/client-ecr": "^3.922.0",
     "@aws-sdk/client-iam": "^3.922.0",
     "@aws-sdk/client-lambda": "^3.922.0",

@@ -3,7 +3,7 @@ import type { ProjectFile } from '../../types/ai.types.js';
 /**
  * Generate prompt for AI to create Docker configurations
  */
-export function createDockerfileGenerationPrompt(files: ProjectFile[]): string {
+export function createDockerfileGenerationPrompt(files: ProjectFile[], preflightAnalysis?: any): string {
   // Build file content blocks
   const fileBlocks = files.map(file => {
     // Truncate very large files
@@ -16,7 +16,26 @@ ${content}
 </file>`;
   }).join('\n\n');
 
+  // Build pre-flight context if available
+  const preflightContext = preflightAnalysis ? `
+## Pre-Flight Analysis (IMPORTANT - Use This Information):
+
+**Package Manager Detected:** ${preflightAnalysis.packageManager}
+- Use "${preflightAnalysis.packageManager}" commands in Dockerfile (e.g., "${preflightAnalysis.packageManager} ci" or "${preflightAnalysis.packageManager} install")
+
+**Framework:** ${preflightAnalysis.framework}
+
+**Fixes Already Applied:**
+${preflightAnalysis.fixesApplied.map((fix: string) => `- ${fix}`).join('\n') || '- None'}
+
+**Docker Context:**
+${JSON.stringify(preflightAnalysis.dockerContext, null, 2)}
+
+**CRITICAL:** You MUST use "${preflightAnalysis.packageManager}" as the package manager. Do NOT use yarn, npm, or other package managers if ${preflightAnalysis.packageManager} is specified.
+` : '';
+
   return `You are an expert DevOps engineer. Generate production-ready Docker configurations for this project.
+${preflightContext}
 
 ## Project Files:
 
@@ -33,19 +52,62 @@ Generate the following configurations:
 ## Requirements:
 
 **Dockerfile:**
-- Use multi-stage builds for compiled languages (TypeScript, Go, etc.)
-- Use Alpine-based images for smaller size
-- Install ONLY production dependencies
-- Properly handle build steps (tsc, webpack, npm run build, etc.)
-- Detect and use the correct package manager (npm, yarn, pnpm, bun)
+- Use multi-stage builds to separate dependencies, build, and runtime stages
+- Use Alpine-based images for smaller size (e.g., node:19-alpine)
+- CRITICAL BUILD DEPENDENCIES: Install ALL dependencies (including devDependencies) in the build stage using "${preflightAnalysis?.packageManager || 'npm'} ci"
+- NEVER use --only=production or --production flags during build stage (breaks Next.js builds)
+- Properly handle build steps (npm run build, tsc, webpack, etc.)
+- Use the package manager detected in pre-flight: ${preflightAnalysis?.packageManager || 'npm'}
 - Set appropriate WORKDIR, EXPOSE, and CMD
-- Optimize layer caching
+- Optimize layer caching by copying package files first
 - Handle framework-specific requirements:
-  - Next.js: Use standalone output, copy .next/standalone
+  
+  **Next.js with standalone output (CRITICAL - FOLLOW THIS EXACT STRUCTURE):**
+  
+  Stage 1 - Dependencies Stage:
+    FROM node:19-alpine AS deps
+    WORKDIR /app
+    COPY package.json package-lock.json ./
+    RUN ${preflightAnalysis?.packageManager || 'npm'} ci
+  
+  Stage 2 - Builder Stage:
+    FROM node:19-alpine AS builder
+    WORKDIR /app
+    COPY --from=deps /app/node_modules ./node_modules
+    COPY . .
+    RUN ${preflightAnalysis?.packageManager || 'npm'} run build
+  
+  Stage 3 - Runner Stage (EXACT STRUCTURE REQUIRED):
+    FROM node:19-alpine AS runner
+    WORKDIR /app
+    
+    ENV NODE_ENV production
+    ENV PORT 3000
+    ENV HOSTNAME "0.0.0.0"
+    
+    RUN addgroup --system --gid 1001 nodejs
+    RUN adduser --system --uid 1001 nextjs
+    
+    COPY --from=builder /app/public ./public
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+    
+    USER nextjs
+    EXPOSE 3000
+    CMD ["node", "server.js"]
+  
+  **CRITICAL NEXT.JS RULES - DO NOT DEVIATE:**
+  - Line must be: COPY --from=builder /app/public ./public
+  - Line must be: COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+  - Line must be: COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+  - The .next/static MUST be copied to ./.next/static (preserve directory structure)
+  - DO NOT copy to ./static (wrong)
+  - CMD must be: ["node", "server.js"] NOT "npm start"
+  - MUST include all ENV variables, user setup, and security settings shown above
+  
   - NestJS: Build with nest build, run dist/main.js
   - Python/Django: Collect static files, use gunicorn/uvicorn
   - Prisma: Run prisma generate before build
-- Set correct base image version from detected language version
 
 **.dockerignore:**
 - Exclude: node_modules, .git, dist, build, .env files, test files, documentation

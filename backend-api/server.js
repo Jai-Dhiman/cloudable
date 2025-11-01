@@ -63,7 +63,7 @@ Only mention if you see it in the files:
 Be direct. No fluff. Only report what's actually in the files.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-2025-08-07',
       messages: [
         {
           role: 'system',
@@ -123,7 +123,7 @@ If they exist
 No unnecessary text. Just the facts.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-2025-08-07',
       messages: [
         {
           role: 'system',
