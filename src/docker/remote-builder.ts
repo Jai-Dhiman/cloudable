@@ -6,6 +6,11 @@ import {
   UpdateProjectCommand,
 } from '@aws-sdk/client-codebuild';
 import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3';
+import { 
+  CloudWatchLogsClient, 
+  GetLogEventsCommand,
+  FilterLogEventsCommand 
+} from '@aws-sdk/client-cloudwatch-logs';
 import * as fs from 'fs';
 import * as path from 'path';
 import archiver from 'archiver';
@@ -25,6 +30,7 @@ export interface RemoteBuilderConfig {
 export class AWSRemoteBuilder {
   private codeBuildClient: CodeBuildClient;
   private s3Client: S3Client;
+  private logsClient: CloudWatchLogsClient;
   private config: RemoteBuilderConfig;
   private bucketName: string;
 
@@ -32,6 +38,7 @@ export class AWSRemoteBuilder {
     this.config = config;
     this.codeBuildClient = new CodeBuildClient({ region: config.region });
     this.s3Client = new S3Client({ region: config.region });
+    this.logsClient = new CloudWatchLogsClient({ region: config.region });
     this.bucketName = `cloudable-builds-${config.accountId}`;
   }
 
@@ -340,6 +347,11 @@ phases:
           return imageUri;
         } else if (status === 'FAILED' || status === 'FAULT' || status === 'STOPPED' || status === 'TIMED_OUT') {
           spinner.fail(chalk.red(`❌ Build ${status.toLowerCase()}`));
+          
+          // Fetch and display build logs
+          console.log(chalk.yellow('\n📋 Build Logs:\n'));
+          await this.fetchBuildLogs(build.logs?.groupName, build.logs?.streamName);
+          
           throw new Error(`Build ${status.toLowerCase()}: ${build.buildNumber}`);
         }
 
@@ -355,6 +367,53 @@ phases:
 
     spinner.fail(chalk.red('❌ Build timeout'));
     throw new Error('Build timed out after 10 minutes');
+  }
+
+  /**
+   * Fetch and display build logs from CloudWatch
+   */
+  private async fetchBuildLogs(logGroupName?: string, logStreamName?: string): Promise<void> {
+    if (!logGroupName || !logStreamName) {
+      console.log(chalk.gray('  (No logs available)\n'));
+      return;
+    }
+
+    try {
+      const response = await this.logsClient.send(
+        new GetLogEventsCommand({
+          logGroupName,
+          logStreamName,
+          startFromHead: true,
+        })
+      );
+
+      const events = response.events || [];
+      
+      if (events.length === 0) {
+        console.log(chalk.gray('  (No log events found)\n'));
+        return;
+      }
+
+      // Display last 50 log lines (or all if less)
+      const displayEvents = events.slice(-50);
+      
+      for (const event of displayEvents) {
+        const message = event.message || '';
+        
+        // Color code based on log content
+        if (message.includes('ERROR') || message.includes('Error') || message.includes('error')) {
+          console.log(chalk.red(`  ${message.trim()}`));
+        } else if (message.includes('WARNING') || message.includes('Warning')) {
+          console.log(chalk.yellow(`  ${message.trim()}`));
+        } else {
+          console.log(chalk.gray(`  ${message.trim()}`));
+        }
+      }
+      
+      console.log(); // Empty line after logs
+    } catch (error: any) {
+      console.log(chalk.gray(`  (Could not fetch logs: ${error.message})\n`));
+    }
   }
 
   /**

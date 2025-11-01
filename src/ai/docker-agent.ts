@@ -103,12 +103,25 @@ export class DockerGenerationAgent {
   }
 
   /**
-   * Extract content from XML-style tags
+   * Extract content from XML-style tags and strip markdown code fences
    */
   private extractTag(text: string, tagName: string): string | undefined {
     const regex = new RegExp(`<${tagName}>\\s*([\\s\\S]*?)\\s*</${tagName}>`, 'i');
     const match = text.match(regex);
-    return match ? match[1].trim() : undefined;
+    
+    if (!match) return undefined;
+    
+    let content = match[1].trim();
+    
+    // Strip markdown code fences if present (```dockerfile ... ``` or ```yaml ... ```)
+    // This handles cases where AI wraps content in markdown
+    const codeFenceRegex = /^```[\w]*\n?([\s\S]*?)\n?```$/;
+    const codeFenceMatch = content.match(codeFenceRegex);
+    if (codeFenceMatch) {
+      content = codeFenceMatch[1].trim();
+    }
+    
+    return content;
   }
 
   /**
