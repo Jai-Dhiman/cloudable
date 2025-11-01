@@ -22,3 +22,7 @@ export { CommandProcessor, createCommandProcessor } from './command-processor.js
 export type { CommandProcessingResult } from './command-processor.js';
 
 export { EmailService } from './email-service.js';
+
+export { PDFGeneratorService } from './pdf-generator.service.js';
+export { ReportGenerationService } from './report-generation.service.js';
+export type { ReportGenerationConfig, ReportGenerationResult } from './report-generation.service.js';
