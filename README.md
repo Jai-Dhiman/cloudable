@@ -1,6 +1,6 @@
 <div align="center">
 
-# ![Rocket](https://img.icons8.com/?id=92053&format=png&size=24) Cloudable
+# ![Rocket](https://img.icons8.com/?id=15152&format=png&size=24) Cloudable
 
 ![Deployment](https://img.icons8.com/?id=12005&format=png&size=64) ![Command Line](https://img.icons8.com/?id=19291&format=png&size=64) ![AWS](https://img.icons8.com/?id=Igd4E7P0RbCf&format=png&size=64)
 
@@ -14,23 +14,23 @@
 
 ---
 
-## ![Book](https://img.icons8.com/?id=114461&format=png&size=24) Overview
+## ![Book](https://img.icons8.com/?id=114325&format=png&size=24) Overview
 
 **Cloudable** is an intelligent CLI tool that helps junior engineers, vibe-coders, and early-stage startups deploy applications to AWS with intelligent cost monitoring and control. Built for hackathons and MVPs, Cloudable reduces deployment complexity from days to minutes while preventing unexpected cloud bills.
 
-### ![Star](https://img.icons8.com/?id=104&format=png&size=24) Key Features
+### ![Star](https://img.icons8.com/?id=19295&format=png&size=24) Key Features
 
 | Feature | Description |
 |--------|-------------|
-| ![Code](https://img.icons8.com/?id=2778&format=png&size=32) **AI-Powered Code Analysis** | Analyzes your codebase using Moss semantic search and AI to understand infrastructure needs |
+| ![Code](https://img.icons8.com/?id=19293&format=png&size=32) **AI-Powered Code Analysis** | Analyzes your codebase using Moss semantic search and AI to understand infrastructure needs |
 | ![Deployment](https://img.icons8.com/?id=12005&format=png&size=32) **Intelligent Infrastructure** | Generates production-ready Terraform configurations based on your codebase |
-| ![Money](https://img.icons8.com/?id=7165&format=png&size=32) **Proactive Cost Monitoring** | Weekly email reports with cost projections and optimization recommendations |
-| ![Robot](https://img.icons8.com/?id=dL3M6FPblFer&format=png&size=32) **Multi-Agent Intelligence** | Uses Mastra orchestration with 5 specialized agents for smart decisions |
+| ![Money](https://img.icons8.com/?id=13013&format=png&size=32) **Proactive Cost Monitoring** | Weekly email reports with cost projections and optimization recommendations |
+| ![Robot](https://img.icons8.com/?id=9inONWn9EvfI&format=png&size=32) **Multi-Agent Intelligence** | Uses Mastra orchestration with 5 specialized agents for smart decisions |
 | ![AWS](https://img.icons8.com/?id=Igd4E7P0RbCf&format=png&size=32) **AWS Integration** | Deep integration with AWS services via Composio |
 
 ---
 
-## ![Goal](https://img.icons8.com/?id=20884&format=png&size=24) Problem It Solves
+## ![Goal](https://img.icons8.com/?id=63765&format=png&size=24) Problem It Solves
 
 Early-stage teams face two critical challenges:
 
@@ -41,7 +41,7 @@ Cloudable solves both by providing intelligent, cost-aware infrastructure recomm
 
 ---
 
-## ![Rocket](https://img.icons8.com/?id=92053&format=png&size=24) Quick Start
+## ![Rocket](https://img.icons8.com/?id=15152&format=png&size=24) Quick Start
 
 ### Prerequisites
 
@@ -81,7 +81,7 @@ cloudable initialize
 
 ---
 
-## ![Clipboard](https://img.icons8.com/?id=Q0M3lyvPv8_2&format=png&size=24) Available Commands
+## ![Clipboard](https://img.icons8.com/?id=11864&format=png&size=24) Available Commands
 
 ### `analyze`
 Analyze your project using AI to understand its structure and deployment needs.
@@ -163,7 +163,7 @@ cloudable setup-remote
 
 ---
 
-## ![Construction](https://img.icons8.com/?id=2489&format=png&size=24) Architecture
+## ![Construction](https://img.icons8.com/?id=WCHDg9c5GuRM&format=png&size=24) Architecture
 
 Cloudable uses a **multi-agent orchestration system** powered by:
 
@@ -183,22 +183,22 @@ Cloudable uses a **multi-agent orchestration system** powered by:
 
 ---
 
-## ![Innovation](https://img.icons8.com/?id=24880&format=png&size=24) Features in Detail
+## ![Innovation](https://img.icons8.com/?id=33470&format=png&size=24) Features in Detail
 
-### ![Robot](https://img.icons8.com/?id=dL3M6FPblFer&format=png&size=24) AI-Powered Analysis
+### ![Robot](https://img.icons8.com/?id=9inONWn9EvfI&format=png&size=24) AI-Powered Analysis
 - Framework detection (Next.js, Django, React, Express, etc.)
 - Dependency analysis
 - Service requirements detection (databases, cache, storage, queues)
 - Build configuration detection
 - Environment variable detection
 
-### ![Analytics](https://img.icons8.com/?id=wdfmkgweCGDk&format=png&size=24) Cost Monitoring
+### ![Analytics](https://img.icons8.com/?id=SROvvC91x7DL&format=png&size=24) Cost Monitoring
 - Weekly email reports with cost breakdown
 - Cost projections and anomaly detection
 - Human-in-the-loop cost control via email
 - Automatic optimization recommendations
 
-### ![Analytics](https://img.icons8.com/?id=wdfmkgweCGDk&format=png&size=24) Detailed Analysis
+### ![Analytics](https://img.icons8.com/?id=SROvvC91x7DL&format=png&size=24) Detailed Analysis
 Get comprehensive insights about your project:
 - Framework and runtime detection
 - Service dependencies (databases, cache, storage)
@@ -216,7 +216,7 @@ Get comprehensive insights about your project:
 
 ---
 
-## ![Tools](https://img.icons8.com/?id=SWeF9c1usCzX&format=png&size=24) Development
+## ![Tools](https://img.icons8.com/?id=13121&format=png&size=24) Development
 
 ### Project Structure
 
@@ -271,7 +271,7 @@ export default class MyCommand extends Command {
 
 ---
 
-## ![Settings](https://img.icons8.com/?id=6i0wNATb63Qv&format=png&size=24) Configuration
+## ![Settings](https://img.icons8.com/?id=12784&format=png&size=24) Configuration
 
 ### Environment Variables
 
@@ -297,7 +297,7 @@ AGENTMAIL_API_KEY=your_agentmail_key
 
 ---
 
-## ![Book](https://img.icons8.com/?id=114461&format=png&size=24) Documentation
+## ![Book](https://img.icons8.com/?id=114325&format=png&size=24) Documentation
 
 - **[Product Requirements Document](./docs/PRD.md)** - Full product vision and requirements
 - **[Architecture Documentation](./docs/ARCHITECTURE.md)** - Technical architecture details
@@ -305,7 +305,7 @@ AGENTMAIL_API_KEY=your_agentmail_key
 
 ---
 
-## ![Link](https://img.icons8.com/?id=92&format=png&size=24) Integrations
+## ![Link](https://img.icons8.com/?id=12312&format=png&size=24) Integrations
 
 Cloudable integrates with:
 
@@ -318,7 +318,7 @@ Cloudable integrates with:
 
 ---
 
-## ![Handshake](https://img.icons8.com/?id=10993&format=png&size=24) Contributing
+## ![Handshake](https://img.icons8.com/?id=12208&format=png&size=24) Contributing
 
 We welcome contributions! Please follow these steps:
 
@@ -337,13 +337,13 @@ We welcome contributions! Please follow these steps:
 
 ---
 
-## ![Memo](https://img.icons8.com/?id=JWpT8cAn8G0V&format=png&size=24) License
+## ![Memo](https://img.icons8.com/?id=12053&format=png&size=24) License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## ![Users](https://img.icons8.com/?id=102261&format=png&size=24) Authors
+## ![Users](https://img.icons8.com/?id=37913&format=png&size=24) Authors
 
 - **Bikash Pokharel** (Dpakkk) - *Original Author & Creator*
 - **Jai Dhiman** - *Maintainer & Core Developer*
@@ -352,14 +352,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## ![Bug](https://img.icons8.com/?id=417&format=png&size=24) Issues
+## ![Bug](https://img.icons8.com/?id=13449&format=png&size=24) Issues
 
 Found a bug or have a feature request? Please open an issue at:
 https://github.com/Jai-Dhiman/cloudable/issues
 
 ---
 
-## ![Star](https://img.icons8.com/?id=KS3ARUzPXuOj&format=png&size=24) Acknowledgments
+## ![Star](https://img.icons8.com/?id=19295&format=png&size=24) Acknowledgments
 
 - Built with [oclif](https://oclif.io) - Enterprise CLI framework
 - Powered by [Mastra](https://mastra.ai) - Multi-agent orchestration
@@ -369,8 +369,8 @@ https://github.com/Jai-Dhiman/cloudable/issues
 
 <div align="center">
 
-**Made with ![Heart](https://img.icons8.com/?id=L2sPz0nl-coE&format=png&size=16) for developers who just want to ship**
+**Made with ![Heart](https://img.icons8.com/?id=19411&format=png&size=16) for developers who just want to ship**
 
-[![Star](https://img.icons8.com/?id=104&format=png&size=16) Star us on GitHub](https://github.com/Jai-Dhiman/cloudable)
+[![Star](https://img.icons8.com/?id=19295&format=png&size=16) Star us on GitHub](https://github.com/Jai-Dhiman/cloudable)
 
 </div>
