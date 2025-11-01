@@ -53,8 +53,6 @@ Consider the detected framework, database requirements, and expected DAU when ma
 
   async execute(state: AgentState): Promise<AgentState> {
     try {
-      console.log('💡 Generating infrastructure recommendations...');
-
       if (!state.codeAnalysis) {
         throw new Error('Code analysis required before infrastructure recommendation');
       }
@@ -68,14 +66,10 @@ Consider the detected framework, database requirements, and expected DAU when ma
       let recommendation: InfrastructureRecommendation;
 
       if (useHyperspell) {
-        console.log('  Querying Hyperspell for similar deployment patterns...');
         recommendation = await this.recommendWithHyperspell(state);
       } else {
-        console.log('  Using rule-based recommendations (Hyperspell token not found)...');
         recommendation = await this.recommendWithRules(state);
       }
-
-      console.log(`✓ Recommended: ${recommendation.recommended.name} (~$${recommendation.recommended.estimatedCost.monthly}/month)`);
 
       return this.updateState(state, { infraRecommendation: recommendation });
     } catch (error) {
@@ -89,8 +83,6 @@ Consider the detected framework, database requirements, and expected DAU when ma
     // TODO: Implement Hyperspell SDK integration when credentials are available
     // Query for similar deployment patterns based on framework and database
     // For now, use AI recommendations
-
-    console.log('  Note: Hyperspell integration pending - using AI recommendations');
     return this.recommendWithAI(state);
   }
 
@@ -138,10 +130,14 @@ Provide recommendations as JSON:
   "costSavingTips": ["Use VPC endpoints", "Consider reserved instances"]
 }`;
 
-    const result = await this.mastraAgent.generate(prompt);
+    // Use streaming with visible thinking
+    const resultText = await this.generateWithThinking(prompt, {
+      title: 'Planning optimal AWS infrastructure',
+      showPrompt: false
+    });
 
     // Parse AI response
-    const aiRecommendation = this.parseAIResponse(result.text);
+    const aiRecommendation = this.parseAIResponse(resultText);
 
     // Build deployment option from AI response
     return this.buildDeploymentOption(aiRecommendation, codeAnalysis, userAnswers);

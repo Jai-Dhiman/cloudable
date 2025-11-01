@@ -23,8 +23,6 @@ Provide a detailed analysis that will be used to recommend AWS infrastructure.`,
 
   async execute(state: AgentState): Promise<AgentState> {
     try {
-      console.log('🔍 Analyzing codebase with AI...');
-
       // Step 1: Gather project files
       const analyzer = new AIProjectAnalyzer(state.projectPath);
       const files = await analyzer.gatherProjectFiles();
@@ -61,10 +59,14 @@ Return a JSON object with:
   "summary": "2-3 sentence summary of what this application does"
 }`;
 
-      const result = await this.mastraAgent.generate(prompt);
+      // Use streaming with visible thinking
+      const resultText = await this.generateWithThinking(prompt, {
+        title: 'Analyzing codebase structure',
+        showPrompt: false // Set to true to see the full prompt
+      });
 
       // Parse AI response
-      const aiAnalysis = this.parseAIResponse(result.text);
+      const aiAnalysis = this.parseAIResponse(resultText);
 
       // Build final analysis
       const analysis: ProjectAnalysis = {
@@ -84,9 +86,6 @@ Return a JSON object with:
         environmentVars: await this.detectEnvironmentVars(state.projectPath),
         confidence: 90
       };
-
-      console.log(`✓ AI analysis complete (${analysis.framework.framework} detected)`);
-      console.log(`  Summary: ${aiAnalysis.summary}`);
 
       return this.updateState(state, { codeAnalysis: analysis });
     } catch (error) {

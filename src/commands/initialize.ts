@@ -4,6 +4,9 @@ import { basename } from 'node:path';
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
+import boxen from 'boxen';
+import gradient from 'gradient-string';
+import figlet from 'figlet';
 import {
   orchestrateCloudableWorkflow,
   displayAnalysisResults,
@@ -43,10 +46,25 @@ export default class Initialize extends Command {
     const projectPath = resolve(args.path);
     const projectName = basename(projectPath);
 
-    // Display welcome message
-    this.log('\n' + chalk.bold.cyan('🚀 Cloudable - Deploy to AWS in minutes\n'));
-    this.log(chalk.gray(`Project: ${projectName}`));
-    this.log(chalk.gray(`Path: ${projectPath}\n`));
+    // Display welcome message with enhanced styling
+    const banner = figlet.textSync('Cloudable', {
+      font: 'ANSI Shadow',
+      horizontalLayout: 'default'
+    });
+
+    this.log('\n' + gradient.pastel.multiline(banner));
+    this.log(boxen(
+      chalk.bold.cyan('Deploy to AWS in minutes') + '\n\n' +
+      chalk.white('Project: ') + chalk.cyan(projectName) + '\n' +
+      chalk.white('Path: ') + chalk.gray(projectPath),
+      {
+        padding: 1,
+        margin: { top: 1, bottom: 1, left: 2, right: 2 },
+        borderStyle: 'round',
+        borderColor: 'cyan',
+        align: 'center'
+      }
+    ));
 
     try {
       // STEP 1: Analyze codebase FIRST (before questions)
@@ -70,31 +88,49 @@ export default class Initialize extends Command {
         return;
       }
 
-      // Show what we found
-      this.log('\n' + chalk.bold('🔍 What we found:'));
-      this.log(chalk.gray(`  Framework: ${analysisResult.codeAnalysis.framework.framework}`));
+      // Show what we found in a box
+      const foundItems = [
+        chalk.cyan('Framework: ') + chalk.white(analysisResult.codeAnalysis.framework.framework)
+      ];
       if (analysisResult.codeAnalysis.services.database) {
-        this.log(chalk.gray(`  Database: ${analysisResult.codeAnalysis.services.database.type}`));
+        foundItems.push(chalk.cyan('Database: ') + chalk.white(analysisResult.codeAnalysis.services.database.type));
       }
       if (analysisResult.codeAnalysis.services.cache) {
-        this.log(chalk.gray(`  Cache: ${analysisResult.codeAnalysis.services.cache.type}`));
+        foundItems.push(chalk.cyan('Cache: ') + chalk.white(analysisResult.codeAnalysis.services.cache.type));
       }
-      this.log('');
+
+      this.log('\n' + boxen(
+        chalk.bold('🔍 What we found:\n\n') + foundItems.join('\n'),
+        {
+          padding: { top: 0, bottom: 0, left: 2, right: 2 },
+          borderStyle: 'round',
+          borderColor: 'green'
+        }
+      ));
 
       // STEP 2: Ask ADAPTIVE questions based on what we found
       const userAnswers = flags['skip-questions']
         ? this.getDefaultAnswers()
         : await this.askAdaptiveQuestions(analysisResult.codeAnalysis);
 
-      this.log('\n' + chalk.bold('📋 Configuration Summary:'));
-      this.log(chalk.gray(`  Cloud Provider: ${userAnswers.cloudProvider}`));
-      this.log(chalk.gray(`  Expected DAU: ${userAnswers.expectedDAU}`));
-      this.log(chalk.gray(`  Monthly Budget: $${userAnswers.budget}`));
-      this.log(chalk.gray(`  AWS Region: ${userAnswers.awsRegion}`));
+      const configItems = [
+        chalk.cyan('Cloud Provider: ') + chalk.white(userAnswers.cloudProvider.toUpperCase()),
+        chalk.cyan('Expected DAU: ') + chalk.white(userAnswers.expectedDAU.toLocaleString()),
+        chalk.cyan('Monthly Budget: ') + chalk.green(`$${userAnswers.budget}`),
+        chalk.cyan('AWS Region: ') + chalk.white(userAnswers.awsRegion)
+      ];
       if (userAnswers.customDomain) {
-        this.log(chalk.gray(`  Custom Domain: ${userAnswers.customDomain}`));
+        configItems.push(chalk.cyan('Custom Domain: ') + chalk.white(userAnswers.customDomain));
       }
-      this.log('');
+
+      this.log('\n' + boxen(
+        chalk.bold('📋 Configuration Summary\n\n') + configItems.join('\n'),
+        {
+          padding: { top: 0, bottom: 0, left: 2, right: 2 },
+          borderStyle: 'round',
+          borderColor: 'blue'
+        }
+      ) + '\n');
 
       // STEP 3: Run infrastructure recommender with context
       this.log(chalk.cyan('Step 2: Generating infrastructure recommendations...\n'));
@@ -122,19 +158,46 @@ export default class Initialize extends Command {
         return;
       }
 
-      // Confirm deployment
-      const { confirmDeploy } = await inquirer.prompt([
+      // Confirm deployment with enhanced prompt
+      const estimatedCost = state.infraRecommendation?.recommended?.estimatedCost?.monthly || 0;
+      const { confirmDeploy } = await inquirer.prompt<{ confirmDeploy: string }>([
         {
-          type: 'confirm',
+          type: 'list',
           name: 'confirmDeploy',
-          message: chalk.bold('Proceed with deployment to AWS?'),
-          default: true
+          message: `Ready to deploy. Estimated cost: ${chalk.green(`$${estimatedCost}/month`)}`,
+          choices: [
+            { name: 'Yes, deploy now', value: 'deploy' },
+            { name: 'Save Terraform only (no deployment)', value: 'save' },
+            { name: 'Cancel and exit', value: 'cancel' }
+          ],
+          default: 'deploy'
         }
       ]);
 
-      if (!confirmDeploy) {
-        this.log(chalk.yellow('\n⚠️  Deployment cancelled by user'));
-        this.log(chalk.gray('  Terraform files have been saved and can be deployed later\n'));
+      if (confirmDeploy === 'cancel') {
+        this.log('\n' + boxen(
+          chalk.yellow('⚠️  Deployment cancelled\n\n') +
+          chalk.gray('No changes were made to AWS'),
+          {
+            padding: 1,
+            borderStyle: 'round',
+            borderColor: 'yellow'
+          }
+        ) + '\n');
+        return;
+      }
+
+      if (confirmDeploy === 'save') {
+        this.log('\n' + boxen(
+          chalk.blue('💾 Terraform files saved\n\n') +
+          chalk.gray('Review files in: ./terraform/\n') +
+          chalk.gray('Deploy later with: terraform apply'),
+          {
+            padding: 1,
+            borderStyle: 'round',
+            borderColor: 'blue'
+          }
+        ) + '\n');
         return;
       }
 
@@ -145,19 +208,26 @@ export default class Initialize extends Command {
 
       deploySpinner.succeed(chalk.green('Deployment complete'));
 
-      // Success message
-      this.log('\n' + chalk.bold.green('✓ Deployment successful!\n'));
-      this.log(chalk.bold('🌐 Your application is live at:'));
-      this.log(chalk.cyan.underline('  https://ec2-xx-xxx-xxx-xx.compute-1.amazonaws.com\n'));
-
-      this.log(chalk.bold('📊 Cost Monitoring:'));
-      this.log(chalk.gray('  Weekly cost reports will be sent to your email'));
-      this.log(chalk.gray('  Reply to emails to control resources (e.g., "stop this service")\n'));
-
-      this.log(chalk.bold('📁 Next Steps:'));
-      this.log(chalk.gray('  • View your infrastructure: cd terraform && terraform show'));
-      this.log(chalk.gray('  • Check AWS Console: https://console.aws.amazon.com'));
-      this.log(chalk.gray('  • Destroy resources: cloudable destroy\n'));
+      // Success message with enhanced formatting
+      this.log('\n' + boxen(
+        chalk.bold.green('✓ Deployment Successful!\n\n') +
+        chalk.bold('🌐 Your application is live at:\n') +
+        chalk.cyan.underline('https://ec2-xx-xxx-xxx-xx.compute-1.amazonaws.com\n\n') +
+        chalk.bold('📊 Cost Monitoring:\n') +
+        chalk.gray('• Weekly cost reports via email\n') +
+        chalk.gray('• Reply to control resources\n') +
+        chalk.gray('  (e.g., "stop this service")\n\n') +
+        chalk.bold('📁 Next Steps:\n') +
+        chalk.gray('• View infrastructure: ') + chalk.cyan('cd terraform && terraform show\n') +
+        chalk.gray('• AWS Console: ') + chalk.cyan('https://console.aws.amazon.com\n') +
+        chalk.gray('• Destroy resources: ') + chalk.cyan('cloudable destroy'),
+        {
+          padding: 1,
+          margin: 1,
+          borderStyle: 'round',
+          borderColor: 'green'
+        }
+      ) + '\n');
 
     } catch (error) {
       this.error(`Initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

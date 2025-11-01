@@ -1,6 +1,8 @@
 import { Mastra } from '@mastra/core';
 import ora from 'ora';
 import chalk from 'chalk';
+import Table from 'cli-table3';
+import boxen from 'boxen';
 import { CodeAnalyzerAgent } from './agents/code-analyzer.js';
 import { InfraRecommenderAgent } from './agents/infra-recommender.js';
 import type { AgentState, UserAnswers } from './agents/base-agent.js';
@@ -55,65 +57,135 @@ export async function orchestrateCloudableWorkflow(
     errors: []
   };
 
-  console.log(chalk.bold.cyan('\n🤖 Starting AI Agent Orchestration\n'));
+  console.log(boxen(
+    chalk.bold.cyan('🤖 AI Agent Orchestration\n\n') +
+    chalk.gray('Multi-agent system analyzing your project...'),
+    {
+      padding: { top: 0, bottom: 0, left: 2, right: 2 },
+      borderStyle: 'round',
+      borderColor: 'cyan'
+    }
+  ) + '\n');
+
+  // Timeline tracking
+  const timeline: Array<{ step: string; status: string; time?: number; details?: string }> = [
+    { step: 'Code Analysis', status: 'pending' },
+    { step: 'Infrastructure Recommendation', status: 'pending' },
+    { step: 'Terraform Generation', status: 'pending' },
+    { step: 'AWS Deployment', status: 'pending' }
+  ];
+
+  const displayTimeline = () => {
+    console.log(chalk.bold('\n📋 Agent Timeline:\n'));
+    timeline.forEach(item => {
+      let icon = chalk.gray('○');
+      let statusColor = chalk.gray;
+
+      if (item.status === 'in_progress') {
+        icon = chalk.cyan('⟳');
+        statusColor = chalk.cyan;
+      } else if (item.status === 'completed') {
+        icon = chalk.green('✓');
+        statusColor = chalk.green;
+      } else if (item.status === 'failed') {
+        icon = chalk.red('✗');
+        statusColor = chalk.red;
+      }
+
+      const timeStr = item.time ? chalk.gray(` (${item.time.toFixed(1)}s)`) : '';
+      const details = item.details ? chalk.gray(` - ${item.details}`) : '';
+      console.log(`  ${icon} ${statusColor(item.step)}${timeStr}${details}`);
+    });
+    console.log('');
+  };
 
   try {
     // Initialize agents
     const agents = getAgents();
 
     // Step 1: Code Analyzer Agent
-    let spinner = ora(chalk.cyan('Agent 1/2: Analyzing codebase...')).start();
+    timeline[0].status = 'in_progress';
+    displayTimeline();
+
+    const startTime1 = Date.now();
+    let spinner = ora(chalk.cyan('Agent analyzing codebase...')).start();
     try {
+      // Stop spinner before agent thinking starts
+      spinner.stop();
       const analysisResult = await agents.codeAnalyzerAgent.execute(state);
       Object.assign(state, analysisResult);
+      const elapsed1 = (Date.now() - startTime1) / 1000;
 
       if (state.codeAnalysis) {
+        timeline[0].status = 'completed';
+        timeline[0].time = elapsed1;
+        timeline[0].details = state.codeAnalysis.framework.framework;
         spinner.succeed(chalk.green(
-          `Agent 1/2: Codebase analyzed (${state.codeAnalysis.framework.framework} detected)`
+          `Codebase analyzed (${state.codeAnalysis.framework.framework} detected)`
         ));
       } else {
-        spinner.fail(chalk.red('Agent 1/2: Code analysis failed'));
+        timeline[0].status = 'failed';
+        spinner.fail(chalk.red('Code analysis failed'));
       }
     } catch (error) {
-      spinner.fail(chalk.red('Agent 1/2: Code analysis failed'));
+      timeline[0].status = 'failed';
+      spinner.fail(chalk.red('Code analysis failed'));
       const errorMsg = error instanceof Error ? error.message : String(error);
       state.errors.push(`Code Analyzer: ${errorMsg}`);
       console.error(chalk.red(`  Error: ${errorMsg}`));
     }
 
     // Step 2: Infrastructure Recommender Agent
-    spinner = ora(chalk.cyan('Agent 2/2: Generating infrastructure recommendations...')).start();
+    timeline[1].status = 'in_progress';
+    displayTimeline();
+
+    const startTime2 = Date.now();
+    spinner = ora(chalk.cyan('Agent generating infrastructure recommendations...')).start();
     try {
+      // Stop spinner before agent thinking starts
+      spinner.stop();
       const recommendResult = await agents.infraRecommenderAgent.execute(state);
       Object.assign(state, recommendResult);
+      const elapsed2 = (Date.now() - startTime2) / 1000;
 
       if (state.infraRecommendation) {
+        timeline[1].status = 'completed';
+        timeline[1].time = elapsed2;
+        timeline[1].details = `$${state.infraRecommendation.recommended.estimatedCost.monthly}/month`;
         spinner.succeed(chalk.green(
-          `Agent 2/2: Infrastructure recommended ($${state.infraRecommendation.recommended.estimatedCost.monthly}/month)`
+          `Infrastructure recommended ($${state.infraRecommendation.recommended.estimatedCost.monthly}/month)`
         ));
       } else {
-        spinner.fail(chalk.red('Agent 2/2: Infrastructure recommendation failed'));
+        timeline[1].status = 'failed';
+        spinner.fail(chalk.red('Infrastructure recommendation failed'));
       }
     } catch (error) {
-      spinner.fail(chalk.red('Agent 2/2: Infrastructure recommendation failed'));
+      timeline[1].status = 'failed';
+      spinner.fail(chalk.red('Infrastructure recommendation failed'));
       const errorMsg = error instanceof Error ? error.message : String(error);
       state.errors.push(`Infrastructure Recommender: ${errorMsg}`);
       console.error(chalk.red(`  Error: ${errorMsg}`));
     }
 
     // Step 3: Terraform Generator Agent (TODO)
-    // spinner = ora(chalk.cyan('Agent 3/5: Generating Terraform configuration...')).start();
+    // timeline[2].status = 'in_progress';
+    // displayTimeline();
     // ...
 
     // Step 4: Deployment Coordinator Agent (TODO)
-    // spinner = ora(chalk.cyan('Agent 4/5: Deploying to AWS...')).start();
+    // timeline[3].status = 'in_progress';
+    // displayTimeline();
     // ...
 
-    // Step 5: Cost Monitor Agent (TODO)
-    // spinner = ora(chalk.cyan('Agent 5/5: Setting up cost monitoring...')).start();
-    // ...
-
-    console.log(chalk.bold.green('\n✓ Agent orchestration complete\n'));
+    displayTimeline();
+    console.log(boxen(
+      chalk.bold.green('✓ Agent orchestration complete'),
+      {
+        padding: { top: 0, bottom: 0, left: 2, right: 2 },
+        borderStyle: 'round',
+        borderColor: 'green'
+      }
+    ) + '\n');
 
     // Display any errors
     if (state.errors.length > 0) {
@@ -144,40 +216,80 @@ export function displayAnalysisResults(state: AgentState): void {
 
   console.log(chalk.bold('📊 Analysis Results:\n'));
 
-  // Framework
-  console.log(chalk.bold('  Framework:'));
-  console.log(chalk.gray(`    ${codeAnalysis.framework.framework} (${codeAnalysis.framework.runtime})`));
+  // Framework Info Table
+  const frameworkTable = new Table({
+    head: [chalk.bold.cyan('Property'), chalk.bold.cyan('Value')],
+    colWidths: [25, 50],
+    style: {
+      head: [],
+      border: ['cyan']
+    }
+  });
+
+  frameworkTable.push(['Framework', chalk.white(codeAnalysis.framework.framework)]);
+  frameworkTable.push(['Runtime', chalk.white(codeAnalysis.framework.runtime)]);
   if (codeAnalysis.framework.packageManager) {
-    console.log(chalk.gray(`    Package Manager: ${codeAnalysis.framework.packageManager}`));
+    frameworkTable.push(['Package Manager', chalk.white(codeAnalysis.framework.packageManager)]);
   }
 
-  // Services
-  console.log(chalk.bold('\n  Required Services:'));
+  console.log(frameworkTable.toString() + '\n');
+
+  // Services Table
+  const servicesData: string[][] = [];
   if (codeAnalysis.services.database) {
-    console.log(chalk.gray(`    Database: ${codeAnalysis.services.database.type}`));
+    servicesData.push(['Database', codeAnalysis.services.database.type]);
   }
   if (codeAnalysis.services.cache) {
-    console.log(chalk.gray(`    Cache: ${codeAnalysis.services.cache.type}`));
+    servicesData.push(['Cache', codeAnalysis.services.cache.type]);
   }
   if (codeAnalysis.services.storage) {
-    console.log(chalk.gray(`    Storage: ${codeAnalysis.services.storage.type}`));
+    servicesData.push(['Storage', codeAnalysis.services.storage.type]);
   }
   if (codeAnalysis.services.websockets) {
-    console.log(chalk.gray(`    WebSockets: Yes`));
+    servicesData.push(['WebSockets', 'Enabled']);
   }
 
-  // Build Config
+  if (servicesData.length > 0) {
+    const servicesTable = new Table({
+      head: [chalk.bold.cyan('Service Type'), chalk.bold.cyan('Details')],
+      colWidths: [25, 50],
+      style: {
+        head: [],
+        border: ['cyan']
+      }
+    });
+
+    servicesData.forEach(row => {
+      servicesTable.push([chalk.white(row[0]), chalk.white(row[1])]);
+    });
+
+    console.log(chalk.bold('Required Services:\n'));
+    console.log(servicesTable.toString() + '\n');
+  }
+
+  // Build Config Table
   if (codeAnalysis.buildConfig) {
-    console.log(chalk.bold('\n  Build Configuration:'));
+    const buildTable = new Table({
+      head: [chalk.bold.cyan('Build Property'), chalk.bold.cyan('Command/Value')],
+      colWidths: [25, 50],
+      style: {
+        head: [],
+        border: ['cyan']
+      }
+    });
+
     if (codeAnalysis.buildConfig.buildCommand) {
-      console.log(chalk.gray(`    Build: ${codeAnalysis.buildConfig.buildCommand}`));
+      buildTable.push(['Build Command', chalk.gray(codeAnalysis.buildConfig.buildCommand)]);
     }
     if (codeAnalysis.buildConfig.startCommand) {
-      console.log(chalk.gray(`    Start: ${codeAnalysis.buildConfig.startCommand}`));
+      buildTable.push(['Start Command', chalk.gray(codeAnalysis.buildConfig.startCommand)]);
     }
     if (codeAnalysis.buildConfig.port) {
-      console.log(chalk.gray(`    Port: ${codeAnalysis.buildConfig.port}`));
+      buildTable.push(['Port', chalk.white(String(codeAnalysis.buildConfig.port))]);
     }
+
+    console.log(chalk.bold('Build Configuration:\n'));
+    console.log(buildTable.toString() + '\n');
   }
 
   console.log('');
@@ -198,43 +310,72 @@ export function displayInfraRecommendations(state: AgentState): void {
   console.log(chalk.bold(`  ${option.name}`));
   console.log(chalk.gray(`  ${option.description}\n`));
 
-  // Services
-  console.log(chalk.bold('  Services:'));
-  option.services.forEach(service => {
-    console.log(chalk.cyan(`    • ${service.name}`));
-    console.log(chalk.gray(`      ${service.description}`));
-    console.log(chalk.gray(`      Cost: $${service.monthlyCost}/month`));
+  // Services Table
+  const servicesTable = new Table({
+    head: [chalk.bold.cyan('Service'), chalk.bold.cyan('Description'), chalk.bold.cyan('Monthly Cost')],
+    colWidths: [25, 50, 15],
+    wordWrap: true,
+    style: {
+      head: [],
+      border: ['cyan']
+    }
   });
 
-  // Cost Breakdown
-  console.log(chalk.bold('\n  Cost Breakdown:'));
+  option.services.forEach(service => {
+    servicesTable.push([
+      chalk.white(service.name),
+      chalk.gray(service.description),
+      chalk.green(`$${service.monthlyCost}`)
+    ]);
+  });
+
+  console.log(servicesTable.toString() + '\n');
+
+  // Cost Breakdown Table
+  const costTable = new Table({
+    head: [chalk.bold.cyan('Category'), chalk.bold.cyan('Monthly Cost')],
+    colWidths: [30, 20],
+    style: {
+      head: [],
+      border: ['cyan']
+    }
+  });
+
   if (option.estimatedCost.breakdown.compute) {
-    console.log(chalk.gray(`    Compute: $${option.estimatedCost.breakdown.compute}`));
+    costTable.push(['Compute', chalk.white(`$${option.estimatedCost.breakdown.compute}`)]);
   }
   if (option.estimatedCost.breakdown.database) {
-    console.log(chalk.gray(`    Database: $${option.estimatedCost.breakdown.database}`));
+    costTable.push(['Database', chalk.white(`$${option.estimatedCost.breakdown.database}`)]);
   }
   if (option.estimatedCost.breakdown.storage) {
-    console.log(chalk.gray(`    Storage: $${option.estimatedCost.breakdown.storage}`));
+    costTable.push(['Storage', chalk.white(`$${option.estimatedCost.breakdown.storage}`)]);
   }
   if (option.estimatedCost.breakdown.network) {
-    console.log(chalk.gray(`    Network: $${option.estimatedCost.breakdown.network}`));
+    costTable.push(['Network', chalk.white(`$${option.estimatedCost.breakdown.network}`)]);
   }
   if (option.estimatedCost.breakdown.cache) {
-    console.log(chalk.gray(`    Cache: $${option.estimatedCost.breakdown.cache}`));
+    costTable.push(['Cache', chalk.white(`$${option.estimatedCost.breakdown.cache}`)]);
   }
-  console.log(chalk.bold.white(`    Total: $${option.estimatedCost.monthly}/month`));
 
-  // Pros/Cons
-  console.log(chalk.bold('\n  Pros:'));
-  option.pros.forEach(pro => {
-    console.log(chalk.green(`    ✓ ${pro}`));
-  });
+  costTable.push([
+    { content: chalk.bold.white('TOTAL'), hAlign: 'right' },
+    chalk.bold.green(`$${option.estimatedCost.monthly}`)
+  ]);
 
-  console.log(chalk.bold('\n  Cons:'));
-  option.cons.forEach(con => {
-    console.log(chalk.yellow(`    ⚠ ${con}`));
-  });
+  console.log(costTable.toString() + '\n');
+
+  // Pros and Cons in a box
+  const prosText = option.pros.map(pro => chalk.green(`  ✓ ${pro}`)).join('\n');
+  const consText = option.cons.map(con => chalk.yellow(`  ⚠ ${con}`)).join('\n');
+
+  console.log(boxen(
+    chalk.bold('Pros:\n') + prosText + '\n\n' + chalk.bold('Cons:\n') + consText,
+    {
+      padding: 1,
+      borderStyle: 'round',
+      borderColor: 'gray'
+    }
+  ));
 
   console.log('');
 }
