@@ -1,6 +1,6 @@
 {
   "name": "cloudable-cli",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Intelligent AWS infrastructure recommendations for any codebase - analyze and deploy in minutes",
   "main": "index.js",
   "scripts": {

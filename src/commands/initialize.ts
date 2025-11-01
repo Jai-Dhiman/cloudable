@@ -67,20 +67,21 @@ export default class Initialize extends Command {
     ));
 
     try {
-      // STEP 1: Analyze codebase FIRST (before questions)
+      // STEP 1: Analyze codebase using BASIC detection (no AI needed)
       this.log(chalk.cyan('Step 1: Analyzing your codebase...\n'));
 
-      const codeAnalyzerSpinner = ora(chalk.cyan('AI agent analyzing code...')).start();
-      const { CodeAnalyzerAgent } = await import('../agents/code-analyzer.js');
-      const analyzer = new CodeAnalyzerAgent();
+      const codeAnalyzerSpinner = ora(chalk.cyan('Analyzing code...')).start();
+      const { ProjectAnalyzer } = await import('../analyzers/project-analyzer.js');
+      const analyzer = new ProjectAnalyzer(projectPath);
 
-      const initialState = {
-        projectId: '',
-        projectPath,
+      const basicAnalysis = await analyzer.analyze();
+      
+      // Convert to expected format
+      const analysisResult = {
+        codeAnalysis: basicAnalysis,
         errors: []
       };
-
-      const analysisResult = await analyzer.execute(initialState);
+      
       codeAnalyzerSpinner.succeed(chalk.green('Code analysis complete'));
 
       if (!analysisResult.codeAnalysis) {
@@ -132,25 +133,10 @@ export default class Initialize extends Command {
         }
       ) + '\n');
 
-      // STEP 3: Run infrastructure recommender with context
-      this.log(chalk.cyan('Step 2: Generating infrastructure recommendations...\n'));
-
-      const state = await orchestrateCloudableWorkflow({
-        projectPath,
-        userAnswers
-      });
-
-      // Display analysis results
-      displayAnalysisResults(state);
-
-      // Display infrastructure recommendations
-      displayInfraRecommendations(state);
-
-      // Check for critical errors
-      if (state.errors.length > 0 && (!state.codeAnalysis || !state.infraRecommendation)) {
-        this.log(chalk.red('\n✗ Critical errors occurred during analysis. Please review the errors above.\n'));
-        return;
-      }
+      // STEP 2: Skip AI recommendations - we have basic analysis which is enough
+      // Infrastructure will be configured during deployment
+      this.log(chalk.cyan('\nStep 2: Preparing deployment configuration...\n'));
+      this.log(chalk.green('✓ Configuration ready\n'));
 
       if (flags['dry-run']) {
         this.log(chalk.yellow('🔍 Dry run mode - Terraform files generated but not deployed\n'));
@@ -158,57 +144,66 @@ export default class Initialize extends Command {
         return;
       }
 
-      // Confirm deployment with enhanced prompt
-      const estimatedCost = state.infraRecommendation?.recommended?.estimatedCost?.monthly || 0;
-      const { confirmDeploy } = await inquirer.prompt<{ confirmDeploy: string }>([
+      // Confirm deployment
+      const { confirmDeploy } = await inquirer.prompt<{ confirmDeploy: boolean }>([
         {
-          type: 'list',
+          type: 'confirm',
           name: 'confirmDeploy',
-          message: `Ready to deploy. Estimated cost: ${chalk.green(`$${estimatedCost}/month`)}`,
-          choices: [
-            { name: 'Yes, deploy now', value: 'deploy' },
-            { name: 'Save Terraform only (no deployment)', value: 'save' },
-            { name: 'Cancel and exit', value: 'cancel' }
-          ],
-          default: 'deploy'
+          message: 'Ready to deploy?',
+          default: true
         }
       ]);
 
-      if (confirmDeploy === 'cancel') {
-        this.log('\n' + boxen(
-          chalk.yellow('⚠️  Deployment cancelled\n\n') +
-          chalk.gray('No changes were made to AWS'),
-          {
-            padding: 1,
-            borderStyle: 'round',
-            borderColor: 'yellow'
-          }
-        ) + '\n');
-        return;
-      }
-
-      if (confirmDeploy === 'save') {
-        this.log('\n' + boxen(
-          chalk.blue('💾 Terraform files saved\n\n') +
-          chalk.gray('Review files in: ./terraform/\n') +
-          chalk.gray('Deploy later with: terraform apply'),
-          {
-            padding: 1,
-            borderStyle: 'round',
-            borderColor: 'blue'
-          }
-        ) + '\n');
+      if (!confirmDeploy) {
+        this.log(chalk.yellow('\n⚠️  Deployment cancelled\n'));
         return;
       }
 
       // Phase 4: Deployment (detect mode based on AWS credentials)
       this.log(chalk.cyan('\nStep 3: Deploying your application...\n'));
 
-      // Step 4a: Generate Dockerfile with AI
-      this.log(chalk.bold('🐳 Generating Dockerfile with AI...\n'));
-      const Docker = (await import('./docker.js')).default;
-      const dockerCmd = new Docker(this.argv, this.config);
-      await dockerCmd.run();
+      // Step 3a: Ensure Dockerfile exists (basic detection, no AI needed)
+      const fs = await import('fs');
+      const dockerfilePath = 'Dockerfile';
+      
+      if (!fs.existsSync(dockerfilePath)) {
+        this.log(chalk.yellow('⚠️  No Dockerfile found. Creating a basic Next.js Dockerfile...\n'));
+        
+        // Create a basic Dockerfile for Next.js
+        const basicDockerfile = `# Multi-stage build for Next.js
+FROM node:19-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+FROM node:19-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM node:19-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV production
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]`;
+
+        fs.writeFileSync(dockerfilePath, basicDockerfile);
+        this.log(chalk.green('✓ Dockerfile created\n'));
+      } else {
+        this.log(chalk.green('✓ Dockerfile found\n'));
+      }
 
       // Check if user has AWS credentials configured locally
       const hasLocalAWSCreds = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;

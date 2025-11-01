@@ -23,27 +23,21 @@ if (fs.existsSync(homeEnvPath)) {
 }
 
 /**
- * Get OpenAI API key from environment
+ * Get OpenAI API key from environment (optional)
  */
-export function getOpenAIKey(): string {
-  const key = process.env.OPENAI_API_KEY;
-  
-  if (!key) {
-    throw new Error(
-      'OPENAI_API_KEY not found in environment variables.\n\n' +
-      'Please set it using one of these methods:\n' +
-      '1. Export in terminal: export OPENAI_API_KEY=sk-your-key\n' +
-      '2. Add to .env in current directory\n' +
-      '3. Add to .env in Cloudable installation: ' + cloudableEnvPath + '\n' +
-      '4. Add to ~/.cloudable.env in your home directory'
-    );
-  }
-
-  return key;
+export function getOpenAIKey(): string | undefined {
+  return process.env.OPENAI_API_KEY;
 }
 
 /**
- * Validate OpenAI API key exists
+ * Check if OpenAI API key exists
+ */
+export function hasOpenAIKey(): boolean {
+  return !!process.env.OPENAI_API_KEY;
+}
+
+/**
+ * Validate OpenAI API key exists (only use for features that REQUIRE AI)
  */
 export function validateOpenAIKey(): void {
   const openaiApiKey = process.env.OPENAI_API_KEY;
