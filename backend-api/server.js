@@ -21,42 +21,66 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Analyze codebase endpoint
+// Deep AI-powered analysis endpoint
 app.post('/api/analyze', async (req, res) => {
   try {
-    const { analysis } = req.body;
+    const { projectFiles, projectName } = req.body;
 
-    const prompt = `Analyze this codebase and provide deployment insights:
+    const prompt = `Analyze this codebase. Only report what you see in the actual files.
 
-Framework: ${analysis.framework?.name || 'Unknown'}
-Runtime: ${analysis.framework?.runtime || 'Unknown'}
-Database: ${analysis.services?.database?.type || 'None'}
-Cache: ${analysis.services?.cache?.type || 'None'}
+PROJECT: ${projectName}
 
-Provide a brief analysis (2-3 sentences) about:
-1. Any potential deployment issues
-2. Performance considerations
-3. Security recommendations`;
+${projectFiles}
+
+Provide ONLY these sections based on what's in the files:
+
+**PROJECT TYPE:** [Frontend / Backend / Fullstack]
+
+**COMPLEXITY:** [Simple / Medium / Complex] - Why?
+
+**STACK:**
+- Framework/library (from package.json/requirements.txt)
+- Language
+- Main dependencies
+
+**SERVICES NEEDED:**
+- Database? (only if you see it in dependencies/docker-compose)
+- Cache? (only if you see Redis/Memcached)
+- Storage? (only if you see S3/file storage)
+
+**BUILD COMMANDS:**
+- Install: (from package.json scripts)
+- Build: (from package.json scripts)
+- Start: (from package.json scripts)
+- Port: (from code or docker)
+
+**DEPLOYMENT NOTES:**
+Only mention if you see it in the files:
+- Docker config
+- Environment variables needed
+- Special requirements
+
+Be direct. No fluff. Only report what's actually in the files.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert DevOps engineer analyzing codebases for deployment.',
+          content: 'You are a DevOps engineer. Be direct and concise. Only report facts from the code.',
         },
         {
           role: 'user',
           content: prompt,
         },
       ],
-      max_tokens: 200,
-      temperature: 0.7,
+      max_tokens: 800,
+      temperature: 0.2,
     });
 
     res.json({
       success: true,
-      insight: response.choices[0]?.message?.content || 'No analysis available'
+      analysis: response.choices[0]?.message?.content || 'No analysis available'
     });
   } catch (error) {
     console.error('Analysis error:', error);
@@ -67,37 +91,51 @@ Provide a brief analysis (2-3 sentences) about:
   }
 });
 
-// Infrastructure recommendation endpoint
+// AI-powered deployment recommendation endpoint
 app.post('/api/recommend', async (req, res) => {
   try {
-    const { analysis } = req.body;
+    const { aiAnalysis, projectFiles, projectName } = req.body;
 
-    const prompt = `Given this project:
+    const prompt = `Based on this project analysis, recommend AWS services for deployment. Be direct and concise.
 
-Framework: ${analysis.framework?.name || 'Unknown'} ${analysis.framework?.version || ''}
-Type: ${analysis.framework?.type || 'Unknown'}
-Runtime: ${analysis.framework?.runtime || 'Unknown'}
-Database: ${analysis.services?.database?.type || 'None'}
-Cache: ${analysis.services?.cache?.type || 'None'}
-Storage: ${analysis.services?.storage?.type || 'None'}
+PROJECT: ${projectName}
 
-Recommend the BEST AWS deployment option and explain why in 2-3 sentences.
-Consider cost, scalability, and ease of management.`;
+${aiAnalysis}
+
+Provide ONLY:
+
+**AWS SERVICES:**
+- List specific services (Amplify/EC2/ECS/RDS/S3/CloudFront)
+- Why each service?
+
+**DEPLOYMENT STEPS:**
+1. Step one
+2. Step two
+3. Step three
+(Max 5 steps, be specific)
+
+**COST:**
+Estimated monthly cost for low traffic
+
+**FASTER/CHEAPER OPTIONS:**
+If they exist
+
+No unnecessary text. Just the facts.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an AWS solutions architect expert.',
+          content: 'AWS Solutions Architect. Be concise. No fluff.',
         },
         {
           role: 'user',
           content: prompt,
         },
       ],
-      max_tokens: 150,
-      temperature: 0.7,
+      max_tokens: 600,
+      temperature: 0.2,
     });
 
     res.json({
