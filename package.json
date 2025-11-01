@@ -50,7 +50,9 @@
     "topicSeparator": " "
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.59",
     "@aws-sdk/client-sts": "^3.922.0",
+    "@mastra/core": "^0.23.3",
     "@oclif/core": "^4.8.0",
     "@types/inquirer": "^9.0.9",
     "@types/js-yaml": "^4.0.9",
@@ -58,7 +60,6 @@
     "@aws-sdk/client-pricing": "^3.922.0",
     "@aws-sdk/client-service-quotas": "^3.922.0",
     "@cdktf/provider-aws": "^21.16.0",
-    "@mastra/core": "^0.23.3",
     "@types/node-fetch": "^2.6.13",
     "ai": "^5.0.86",
     "cdktf": "^0.21.0",
@@ -67,12 +68,8 @@
     "composio-core": "^0.5.39",
     "constructs": "^10.4.2",
     "inquirer": "^12.10.0",
-    "node-fetch": "^3.3.2",
-    "ora": "^9.0.0",
-    "tree-sitter": "^0.25.0",
-    "tree-sitter-javascript": "^0.25.0",
-    "zod": "^3.25.76",
-    "dotenv": "^17.2.3"
+    "openai": "^6.7.0",
+    "ora": "^9.0.0"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
