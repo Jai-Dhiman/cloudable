@@ -1,10 +1,10 @@
 {
-  "name": "cloudable",
-  "version": "1.0.0",
-  "description": "",
+  "name": "cloudable-cli",
+  "version": "2.0.1",
+  "description": "Intelligent AWS infrastructure recommendations for any codebase - analyze and deploy in minutes",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/templates dist/",
     "dev": "./bin/dev.js",
     "start": "./bin/run.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,9 +14,23 @@
     "type": "git",
     "url": "git+https://github.com/Jai-Dhiman/cloudable.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "aws",
+    "deployment",
+    "infrastructure",
+    "cli",
+    "cloud",
+    "devops",
+    "nextjs",
+    "django",
+    "react",
+    "ecs",
+    "ec2",
+    "terraform",
+    "cost-optimization"
+  ],
+  "author": "Bikash Pokharel",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Jai-Dhiman/cloudable/issues"
   },
@@ -24,6 +38,11 @@
   "bin": {
     "cloudable": "./bin/run.js"
   },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "oclif": {
     "bin": "cloudable",
     "commands": "./dist/commands",
@@ -31,15 +50,52 @@
     "topicSeparator": " "
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.59",
+    "@aws-sdk/client-cloudformation": "^3.922.0",
+    "@aws-sdk/client-cloudwatch": "^3.922.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.922.0",
+    "@aws-sdk/client-cost-explorer": "^3.922.0",
+    "@aws-sdk/client-ec2": "^3.922.0",
+    "@aws-sdk/client-pricing": "^3.922.0",
+    "@aws-sdk/client-rds": "^3.922.0",
+    "@aws-sdk/client-s3": "^3.922.0",
+    "@aws-sdk/client-service-quotas": "^3.922.0",
+    "@aws-sdk/client-sts": "^3.922.0",
+    "@cdktf/provider-aws": "^21.16.0",
+    "@inferedge/moss": "^1.0.0-beta.1",
+    "@mastra/core": "^0.23.3",
     "@oclif/core": "^4.8.0",
+    "@types/cli-progress": "^3.11.6",
+    "@types/figlet": "^1.7.0",
+    "@types/gradient-string": "^1.1.6",
+    "@types/inquirer": "^9.0.9",
     "@types/js-yaml": "^4.0.9",
+    "@types/node-fetch": "^2.6.13",
+    "agentmail": "^0.1.4",
+    "ai": "^5.0.86",
+    "boxen": "^8.0.1",
+    "cdktf": "^0.21.0",
+    "chalk": "^5.6.2",
+    "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.5",
+    "composio-core": "^0.5.39",
+    "constructs": "^10.4.2",
+    "dotenv": "^17.2.3",
+    "figlet": "^1.9.3",
+    "gradient-string": "^3.0.0",
+    "hyperspell": "^0.26.0",
+    "inquirer": "^12.10.0",
     "js-yaml": "^4.1.0",
-    "pdfkit": "^0.15.0"
+    "log-update": "^7.0.1",
+    "openai": "^6.7.0",
+    "ora": "^9.0.0"
   },
   "devDependencies": {
+    "@types/inquirer": "^9.0.9",
     "@types/node": "^18.19.130",
-    "@types/pdfkit": "^0.13.0",
+    "@types/uuid": "^10.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "uuid": "^13.0.0"
   }
 }

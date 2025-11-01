@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloudable Weekly Cost Report</title>
+  <style>
+    /* Reset styles */
+    body, table, td, p, a, h1, h2, h3, h4, h5, h6 {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f5f7fa;
+      padding: 20px 0;
+    }
+
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px 20px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* Content */
+    .content {
+      padding: 30px 20px;
+    }
+
+    /* Cost Summary Card */
+    .cost-summary {
+      background-color: #f8fafc;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .cost-summary h2 {
+      font-size: 18px;
+      color: #1e293b;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .cost-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .cost-row:last-child {
+      border-bottom: none;
+    }
+
+    .cost-label {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .cost-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .cost-value.positive {
+      color: #dc2626;
+    }
+
+    .cost-value.negative {
+      color: #16a34a;
+    }
+
+    .cost-value.neutral {
+      color: #64748b;
+    }
+
+    /* Monthly Projection */
+    .projection-card {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .projection-card h3 {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      opacity: 0.9;
+    }
+
+    .projection-card .amount {
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .projection-card .trend {
+      font-size: 14px;
+      margin-top: 8px;
+      opacity: 0.9;
+    }
+
+    /* Services Table */
+    .services-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+
+    .services-table thead {
+      background-color: #f8fafc;
+    }
+
+    .services-table th {
+      text-align: left;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .services-table td {
+      padding: 12px;
+      font-size: 14px;
+      color: #1e293b;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .services-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Red Flags Section */
+    .red-flags {
+      margin-bottom: 24px;
+    }
+
+    .red-flags h2 {
+      font-size: 18px;
+      color: #1e293b;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .red-flag-item {
+      border-left: 4px solid #e2e8f0;
+      padding: 16px;
+      margin-bottom: 12px;
+      background-color: #f8fafc;
+      border-radius: 4px;
+    }
+
+    .red-flag-item.critical {
+      border-left-color: #dc2626;
+      background-color: #fef2f2;
+    }
+
+    .red-flag-item.warning {
+      border-left-color: #f59e0b;
+      background-color: #fffbeb;
+    }
+
+    .red-flag-item.info {
+      border-left-color: #3b82f6;
+      background-color: #eff6ff;
+    }
+
+    .red-flag-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .red-flag-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-right: 8px;
+    }
+
+    .red-flag-badge.critical {
+      background-color: #dc2626;
+      color: #ffffff;
+    }
+
+    .red-flag-badge.warning {
+      background-color: #f59e0b;
+      color: #ffffff;
+    }
+
+    .red-flag-badge.info {
+      background-color: #3b82f6;
+      color: #ffffff;
+    }
+
+    .red-flag-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .red-flag-description {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .red-flag-savings {
+      font-size: 13px;
+      font-weight: 600;
+      color: #16a34a;
+    }
+
+    /* Recommendations */
+    .recommendations {
+      margin-bottom: 24px;
+    }
+
+    .recommendations h2 {
+      font-size: 18px;
+      color: #1e293b;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .recommendation-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .recommendation-item:last-child {
+      border-bottom: none;
+    }
+
+    .recommendation-number {
+      background-color: #667eea;
+      color: #ffffff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+
+    .recommendation-content {
+      flex: 1;
+    }
+
+    .recommendation-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .recommendation-savings {
+      font-size: 12px;
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    /* Learning Insights */
+    .learning-insights {
+      background-color: #eff6ff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .learning-insights h2 {
+      font-size: 16px;
+      color: #1e40af;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .insight-item {
+      font-size: 13px;
+      color: #1e3a8a;
+      margin-bottom: 8px;
+      line-height: 1.5;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .insight-item:before {
+      content: "💡";
+      position: absolute;
+      left: 0;
+    }
+
+    .insight-confidence {
+      font-size: 11px;
+      color: #64748b;
+      margin-left: 4px;
+    }
+
+    /* Call to Action */
+    .cta-section {
+      background-color: #f8fafc;
+      border-radius: 8px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .cta-section h3 {
+      font-size: 16px;
+      color: #1e293b;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .cta-section p {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .example-commands {
+      text-align: left;
+      background-color: #ffffff;
+      border-radius: 4px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+
+    .example-commands code {
+      display: block;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    /* Footer */
+    .footer {
+      background-color: #f8fafc;
+      padding: 20px;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .footer p {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive */
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        width: 100% !important;
+      }
+
+      .cost-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .cost-value {
+        margin-top: 4px;
+      }
+
+      .services-table {
+        font-size: 12px;
+      }
+
+      .services-table th,
+      .services-table td {
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- Header -->
+    <div class="header">
+      <h1>{{SUBJECT}}</h1>
+      <p>Generated on {{GENERATED_DATE}}</p>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Cost Summary -->
+      <div class="cost-summary">
+        <h2>Cost Summary</h2>
+        <div class="cost-row">
+          <span class="cost-label">Current Week</span>
+          <span class="cost-value">{{CURRENT_WEEK_COST}}</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Previous Week</span>
+          <span class="cost-value">{{PREVIOUS_WEEK_COST}}</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Change</span>
+          <span class="cost-value {{CHANGE_CLASS}}">{{CHANGE_PERCENT}}</span>
+        </div>
+      </div>
+
+      <!-- Monthly Projection -->
+      <div class="projection-card">
+        <h3>Monthly Projection</h3>
+        <div class="amount">{{MONTHLY_PROJECTION}}</div>
+        <div class="trend">{{TREND_DESCRIPTION}}</div>
+      </div>
+
+      <!-- Top Services -->
+      <h2 style="font-size: 18px; color: #1e293b; margin-bottom: 16px; font-weight: 600;">Top AWS Services</h2>
+      <table class="services-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>This Week</th>
+            <th>Change</th>
+            <th>Monthly</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{TOP_SERVICES_ROWS}}
+        </tbody>
+      </table>
+
+      <!-- Red Flags -->
+      <div class="red-flags">
+        <h2>Red Flags ({{RED_FLAG_COUNT}})</h2>
+        {{RED_FLAGS_SECTION}}
+      </div>
+
+      <!-- Recommendations -->
+      <div class="recommendations">
+        <h2>Top 3 Cost Optimization Recommendations</h2>
+        {{RECOMMENDATIONS_SECTION}}
+      </div>
+
+      <!-- Learning Insights -->
+      <div class="learning-insights">
+        <h2>Learning Insights</h2>
+        {{LEARNING_INSIGHTS_SECTION}}
+      </div>
+
+      <!-- Call to Action -->
+      <div class="cta-section">
+        <h3>Reply to this email to take action</h3>
+        <p>You can control your AWS resources by simply replying to this email with natural language commands.</p>
+        <div class="example-commands">
+          <strong style="font-size: 13px; color: #1e293b; display: block; margin-bottom: 8px;">Example commands:</strong>
+          <code>"Stop the NAT Gateway"</code>
+          <code>"Approve recommendation #1"</code>
+          <code>"Show me more details about EC2 costs"</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <p>This report was generated by <strong>Cloudable</strong></p>
+      <p>Powered by AgentMail + Hyperspell + Mastra + Moss</p>
+      <p><a href="https://cloudable.dev">Learn more about Cloudable</a></p>
+    </div>
+  </div>
+</body>
+</html>
