@@ -1,0 +1,28 @@
+{
+  "id": "executive",
+  "name": "Executive Summary Template",
+  "version": "1.0.0",
+  "description": "Condensed executive-friendly report with high-level insights only",
+  "layout": {
+    "right_margin": 1.0,
+    "left_margin": 1.0,
+    "top_margin": 1.0,
+    "bottom_margin": 1.0
+  },
+  "styles": {
+    "default_font_size": 11,
+    "default_leading": 16,
+    "h1_font_size": 24,
+    "h1_color": "#000000",
+    "h2_font_size": 16,
+    "h2_color": "#1565c0",
+    "h3_font_size": 12
+  },
+  "sections": [
+    "header",
+    "title",
+    "summary",
+    "recommendations"
+  ]
+}
+

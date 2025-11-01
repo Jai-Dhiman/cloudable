@@ -1,0 +1,33 @@
+{
+  "id": "default",
+  "name": "Default Report Template",
+  "version": "1.0.0",
+  "description": "Standard Cloudable project analysis report template with comprehensive analysis sections",
+  "layout": {
+    "right_margin": 0.75,
+    "left_margin": 0.75,
+    "top_margin": 0.75,
+    "bottom_margin": 1.0
+  },
+  "styles": {
+    "default_font_size": 10,
+    "default_leading": 14,
+    "h1_font_size": 20,
+    "h1_color": "#000000",
+    "h2_font_size": 14,
+    "h2_color": "#0d47a1",
+    "h3_font_size": 11
+  },
+  "sections": [
+    "header",
+    "title",
+    "summary",
+    "framework",
+    "services",
+    "build_config",
+    "deployment_docs",
+    "environment_vars",
+    "recommendations"
+  ]
+}
+

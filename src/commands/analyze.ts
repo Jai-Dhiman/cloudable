@@ -1,6 +1,8 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {resolve} from 'node:path'
+import {writeFile} from 'fs/promises'
 import {ProjectAnalyzer} from '../analyzers/project-analyzer.js'
+import {PDFGeneratorService} from '../../pdf_generator/service.js'
 
 export default class Analyze extends Command {
   static description = 'Analyze a project to understand its deployment requirements'
@@ -9,6 +11,8 @@ export default class Analyze extends Command {
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> /path/to/project',
     '<%= config.bin %> <%= command.id %> --verbose',
+    '<%= config.bin %> <%= command.id %> --pdf=default',
+    '<%= config.bin %> <%= command.id %> --pdf=executive --pdf-output=report.pdf',
   ]
 
   static flags = {
@@ -16,6 +20,13 @@ export default class Analyze extends Command {
       char: 'v',
       description: 'Show detailed analysis output',
       default: false,
+    }),
+    pdf: Flags.string({
+      description: 'Generate PDF report (specify template: default, detailed, or executive)',
+      options: ['default', 'detailed', 'executive'],
+    }),
+    'pdf-output': Flags.string({
+      description: 'Output path for PDF file (default: {project-name}-analysis.pdf)',
     }),
   }
 
@@ -40,6 +51,11 @@ export default class Analyze extends Command {
 
       // Display results
       this.displayResults(analysis, flags.verbose)
+
+      // Generate PDF if requested
+      if (flags.pdf) {
+        await this.generatePDF(analysis, flags.pdf, flags['pdf-output'] || null)
+      }
     } catch (error) {
       this.error(`Failed to analyze project: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
@@ -213,6 +229,23 @@ export default class Analyze extends Command {
       default: {
         return 'Deploy to AWS ECS Fargate (universal containerized deployment)'
       }
+    }
+  }
+
+  private async generatePDF(analysis: any, templateId: string, outputPath: string | null): Promise<void> {
+    try {
+      this.log('\n📄 Generating PDF report...')
+      
+      const pdfService = new PDFGeneratorService()
+      const pdfBuffer = await pdfService.generatePDF(analysis, templateId)
+      
+      const fileName = outputPath || `${analysis.projectName}-analysis.pdf`
+      const fullPath = resolve(fileName)
+      
+      await writeFile(fullPath, pdfBuffer)
+      this.log(`✅ PDF report generated: ${fullPath}\n`)
+    } catch (error) {
+      this.error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }

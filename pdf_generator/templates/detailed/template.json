@@ -1,0 +1,35 @@
+{
+  "id": "detailed",
+  "name": "Detailed Analysis Template",
+  "version": "1.0.0",
+  "description": "Comprehensive detailed report with all analysis sections and page breaks",
+  "layout": {
+    "right_margin": 0.75,
+    "left_margin": 0.75,
+    "top_margin": 0.75,
+    "bottom_margin": 1.0
+  },
+  "styles": {
+    "default_font_size": 9,
+    "default_leading": 13,
+    "h1_font_size": 20,
+    "h1_color": "#000000",
+    "h2_font_size": 14,
+    "h2_color": "#0d47a1",
+    "h3_font_size": 11
+  },
+  "sections": [
+    "header",
+    "title",
+    "summary",
+    "framework",
+    "page_break",
+    "services",
+    "build_config",
+    "page_break",
+    "deployment_docs",
+    "environment_vars",
+    "recommendations"
+  ]
+}
+

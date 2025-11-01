@@ -33,10 +33,12 @@
   "dependencies": {
     "@oclif/core": "^4.8.0",
     "@types/js-yaml": "^4.0.9",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "pdfkit": "^0.15.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",
+    "@types/pdfkit": "^0.13.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
