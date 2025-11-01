@@ -13,6 +13,23 @@ import {
   displayInfraRecommendations
 } from '../orchestrator.js';
 
+/**
+ * Sanitize project name to be AWS-compatible
+ * Must work with both ECR and CodeBuild naming requirements:
+ * - ECR: ^(?:[a-z0-9]+(?:[._-][a-z0-9]+)*)$
+ * - CodeBuild: Only alphanumeric, dash, and underscore
+ * We use the stricter CodeBuild rules for compatibility with all AWS services
+ */
+function sanitizeAppName(name: string): string {
+  return name
+    .toLowerCase()                    // Convert to lowercase
+    .replace(/[^a-z0-9_-]+/g, '-')   // Replace invalid chars (including periods) with hyphens
+    .replace(/^[-_]+/, '')            // Remove leading separators
+    .replace(/[-_]+$/, '')            // Remove trailing separators
+    .replace(/[-_]{2,}/g, '-')        // Replace multiple separators with single hyphen
+    .substring(0, 255);               // Limit to 255 chars
+}
+
 export default class Initialize extends Command {
   static description = 'Initialize and deploy your application to AWS with intelligent infrastructure recommendations';
 
@@ -20,6 +37,7 @@ export default class Initialize extends Command {
     '<%= config.bin %> <%= command.id %>',
     '<%= config.bin %> <%= command.id %> /path/to/project',
     '<%= config.bin %> <%= command.id %> --skip-questions',
+    '<%= config.bin %> <%= command.id %> --app-name my-custom-app',
   ];
 
   static flags = {
@@ -30,6 +48,10 @@ export default class Initialize extends Command {
     'dry-run': Flags.boolean({
       description: 'Generate Terraform without deploying to AWS',
       default: false
+    }),
+    'app-name': Flags.string({
+      description: 'Custom app name for AWS resources (must be lowercase alphanumeric with hyphens)',
+      required: false
     })
   };
 
@@ -45,6 +67,24 @@ export default class Initialize extends Command {
     const { args, flags } = await this.parse(Initialize);
     const projectPath = resolve(args.path);
     const projectName = basename(projectPath);
+    
+    // Use custom app name if provided, otherwise sanitize the project name
+    const appName = flags['app-name'] || sanitizeAppName(projectName);
+    
+    // Validate the app name (using stricter CodeBuild rules for all AWS services)
+    const awsNamePattern = /^[a-z0-9][a-z0-9_-]*$/;
+    if (!awsNamePattern.test(appName)) {
+      this.error(
+        `Invalid app name: "${appName}"\n` +
+        `App names must:\n` +
+        `  - Start with a lowercase letter or number\n` +
+        `  - Only contain lowercase letters, numbers, hyphens, and underscores\n` +
+        `  - Not start or end with hyphens or underscores\n\n` +
+        `Suggestion: Use --app-name flag with a valid name, e.g.:\n` +
+        `  cloudable initialize --app-name ${sanitizeAppName(projectName)}`
+      );
+      return;
+    }
 
     // Display welcome message with enhanced styling
     const banner = figlet.textSync('Cloudable', {
@@ -53,10 +93,22 @@ export default class Initialize extends Command {
     });
 
     this.log('\n' + gradient.pastel.multiline(banner));
+    
+    const displayInfo = [
+      chalk.white('Project: ') + chalk.cyan(projectName),
+      chalk.white('App Name: ') + chalk.cyan(appName),
+      chalk.white('Path: ') + chalk.gray(projectPath)
+    ];
+    
+    // Show warning if name was sanitized
+    if (appName !== projectName && !flags['app-name']) {
+      displayInfo.push('');
+      displayInfo.push(chalk.yellow('⚠️  Name sanitized for AWS compatibility'));
+    }
+    
     this.log(boxen(
       chalk.bold.cyan('Deploy to AWS in minutes') + '\n\n' +
-      chalk.white('Project: ') + chalk.cyan(projectName) + '\n' +
-      chalk.white('Path: ') + chalk.gray(projectPath),
+      displayInfo.join('\n'),
       {
         padding: 1,
         margin: { top: 1, bottom: 1, left: 2, right: 2 },
@@ -254,7 +306,7 @@ export default class Initialize extends Command {
       
       const Deploy = (await import('./deploy.js')).default;
       const deployCmd = new Deploy(
-        [projectName, '--remote'],
+        [appName, '--remote'],
         this.config
       );
       
