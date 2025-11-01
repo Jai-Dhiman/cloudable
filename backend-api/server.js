@@ -5,12 +5,21 @@ import express from 'express';
 import OpenAI from 'openai';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { 
+  CodeBuildClient, 
+  StartBuildCommand, 
+  BatchGetBuildsCommand,
+  CreateProjectCommand 
+} from '@aws-sdk/client-codebuild';
+import { ECRClient, CreateRepositoryCommand, DescribeRepositoriesCommand } from '@aws-sdk/client-ecr';
+import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3';
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increased for project uploads
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
@@ -147,6 +156,191 @@ No unnecessary text. Just the facts.`;
     res.status(500).json({
       success: false,
       error: 'Recommendation failed'
+    });
+  }
+});
+
+// Deployment endpoint - uses backend's AWS credentials
+app.post('/api/deploy', async (req, res) => {
+  try {
+    const { projectName, projectZip, dockerfile, region = 'us-east-1' } = req.body;
+
+    // Validate required fields
+    if (!projectName || !projectZip || !dockerfile) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: projectName, projectZip, dockerfile'
+      });
+    }
+
+    // Use backend's AWS credentials from environment
+    const awsConfig = {
+      region,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    };
+
+    if (!awsConfig.credentials.accessKeyId || !awsConfig.credentials.secretAccessKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error: AWS credentials not set'
+      });
+    }
+
+    const stsClient = new STSClient(awsConfig);
+    const s3Client = new S3Client(awsConfig);
+    const ecrClient = new ECRClient(awsConfig);
+    const codeBuildClient = new CodeBuildClient(awsConfig);
+
+    // Get AWS account ID
+    const identity = await stsClient.send(new GetCallerIdentityCommand({}));
+    const accountId = identity.Account;
+
+    // Step 1: Ensure ECR repository exists
+    try {
+      await ecrClient.send(new DescribeRepositoriesCommand({ repositoryNames: [projectName] }));
+    } catch (error) {
+      if (error.name === 'RepositoryNotFoundException') {
+        await ecrClient.send(new CreateRepositoryCommand({ repositoryName: projectName }));
+      }
+    }
+
+    // Step 2: Ensure S3 bucket exists
+    const bucketName = `cloudable-builds-${accountId}`;
+    try {
+      await s3Client.send(new HeadBucketCommand({ Bucket: bucketName }));
+    } catch (error) {
+      if (error.name === 'NotFound') {
+        await s3Client.send(new CreateBucketCommand({ Bucket: bucketName }));
+      }
+    }
+
+    // Step 3: Upload project zip to S3
+    const sourceKey = `${projectName}/${Date.now()}.zip`;
+    const zipBuffer = Buffer.from(projectZip, 'base64');
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: sourceKey,
+      Body: zipBuffer
+    }));
+
+    // Step 4: Create/update CodeBuild project
+    const buildSpec = `version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${accountId}.dkr.ecr.${region}.amazonaws.com
+      - REPOSITORY_URI=${accountId}.dkr.ecr.${region}.amazonaws.com/${projectName}
+  build:
+    commands:
+      - echo Build started on \`date\`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+  post_build:
+    commands:
+      - echo Build completed on \`date\`
+      - echo Pushing the Docker image...
+      - docker push $REPOSITORY_URI:latest`;
+
+    const projectConfig = {
+      name: `cloudable-${projectName}`,
+      source: {
+        type: 'S3',
+        location: `${bucketName}/${sourceKey}`
+      },
+      artifacts: { type: 'NO_ARTIFACTS' },
+      environment: {
+        type: 'LINUX_CONTAINER',
+        image: 'aws/codebuild/standard:7.0',
+        computeType: 'BUILD_GENERAL1_SMALL',
+        privilegedMode: true,
+        environmentVariables: [
+          { name: 'AWS_DEFAULT_REGION', value: region },
+          { name: 'AWS_ACCOUNT_ID', value: accountId },
+          { name: 'IMAGE_REPO_NAME', value: projectName }
+        ]
+      },
+      serviceRole: `arn:aws:iam::${accountId}:role/CloudableCodeBuildRole`
+    };
+
+    try {
+      await codeBuildClient.send(new CreateProjectCommand(projectConfig));
+    } catch (error) {
+      // Project might already exist, that's ok
+    }
+
+    // Step 5: Start build
+    const startBuildResponse = await codeBuildClient.send(new StartBuildCommand({
+      projectName: `cloudable-${projectName}`,
+      sourceLocationOverride: `${bucketName}/${sourceKey}`,
+      buildspecOverride: buildSpec
+    }));
+
+    const buildId = startBuildResponse.build?.id;
+
+    res.json({
+      success: true,
+      message: 'Deployment started',
+      data: {
+        buildId,
+        accountId,
+        region,
+        projectName,
+        imageUri: `${accountId}.dkr.ecr.${region}.amazonaws.com/${projectName}:latest`
+      }
+    });
+
+  } catch (error) {
+    console.error('Deployment error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Deployment failed'
+    });
+  }
+});
+
+// Check build status endpoint
+app.get('/api/deploy/status/:buildId', async (req, res) => {
+  try {
+    const { buildId } = req.params;
+    const region = req.query.region || 'us-east-1';
+
+    const awsConfig = {
+      region,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    };
+
+    const codeBuildClient = new CodeBuildClient(awsConfig);
+    const response = await codeBuildClient.send(new BatchGetBuildsCommand({ ids: [buildId] }));
+    const build = response.builds?.[0];
+
+    if (!build) {
+      return res.status(404).json({ success: false, error: 'Build not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        status: build.buildStatus,
+        phase: build.currentPhase,
+        logs: {
+          groupName: build.logs?.groupName,
+          streamName: build.logs?.streamName
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Status check error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Status check failed'
     });
   }
 });

@@ -201,68 +201,52 @@ export default class Initialize extends Command {
         return;
       }
 
-      // Phase 4: AWS Setup & Deployment Pipeline
-      this.log(chalk.cyan('\nStep 3: Setting up AWS credentials & deployment...\n'));
+      // Phase 4: Deployment via Backend API
+      this.log(chalk.cyan('\nStep 3: Deploying your application...\n'));
 
-      // Step 4a: AWS Credentials Setup
-      this.log(chalk.bold('🔐 Setting up AWS credentials...\n'));
-      
-      // Prompt for AWS credentials using inquirer
-      const awsCredentials = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'accessKeyId',
-          message: 'AWS Access Key ID:',
-          validate: (input: string) => input.length > 0 || 'Access Key ID cannot be empty',
-        },
-        {
-          type: 'password',
-          name: 'secretAccessKey',
-          message: 'AWS Secret Access Key:',
-          mask: '*',
-          validate: (input: string) => input.length > 0 || 'Secret Access Key cannot be empty',
-        },
-        {
-          type: 'input',
-          name: 'region',
-          message: 'AWS Region:',
-          default: userAnswers.awsRegion || 'us-east-1',
-        },
-      ]);
-
-      const Setup = (await import('./setup.js')).default;
-      const setupCmd = new Setup(
-        ['--access-key', awsCredentials.accessKeyId, '--secret-key', awsCredentials.secretAccessKey, '--region', awsCredentials.region],
-        this.config
-      );
-      await setupCmd.run();
-
-      // Step 4b: Generate Dockerfile with AI
-      this.log(chalk.bold('\n🐳 Generating Dockerfile with AI...\n'));
+      // Step 4a: Generate Dockerfile with AI
+      this.log(chalk.bold('🐳 Generating Dockerfile with AI...\n'));
       const Docker = (await import('./docker.js')).default;
       const dockerCmd = new Docker(this.argv, this.config);
       await dockerCmd.run();
 
-      // Step 4c: Setup Remote Build (AWS CodeBuild)
-      this.log(chalk.bold('\n☁️  Setting up AWS remote build...\n'));
-      const SetupRemote = (await import('./setup-remote.js')).default;
-      const setupRemoteCmd = new SetupRemote(this.argv, this.config);
-      await setupRemoteCmd.run();
-
-      // Step 4d: Deploy to AWS
-      const deploySpinner = ora(chalk.cyan('Deploying to AWS EC2...')).start();
+      // Step 4b: Deploy via backend API (no AWS credentials needed!)
+      this.log(chalk.bold('\n☁️  Deploying to cloud infrastructure...\n'));
+      this.log(chalk.gray('Using Cloudable deployment service...\n'));
       
-      const Deploy = (await import('./deploy.js')).default;
-      const deployCmd = new Deploy(
-        [projectName, '--remote'],
-        this.config
-      );
+      const { BackendDeployService } = await import('../services/backend-deploy.service.js');
+      const deployService = new BackendDeployService();
       
       try {
+        // Upload and start build
+        const deployResult = await deployService.deployProject(
+          projectName,
+          userAnswers.awsRegion || 'us-east-1'
+        );
+
+        console.log(chalk.green(`\n✅ Build started: ${deployResult.buildId}\n`));
+        
+        // Wait for build to complete
+        await deployService.waitForBuild(
+          deployResult.buildId,
+          userAnswers.awsRegion || 'us-east-1'
+        );
+
+        console.log(chalk.green(`\n✅ Docker image ready: ${deployResult.imageUri}\n`));
+
+        // Continue with Terraform deployment
+        this.log(chalk.bold('\n📝 Generating infrastructure configuration...\n'));
+        
+        const Deploy = (await import('./deploy.js')).default;
+        const deployCmd = new Deploy(
+          [projectName],
+          this.config
+        );
+        
         await deployCmd.run();
-        deploySpinner.succeed(chalk.green('Deployment complete'));
+
       } catch (error: any) {
-        deploySpinner.fail(chalk.red('Deployment failed'));
+        this.log(chalk.red('\n❌ Deployment failed: ' + error.message));
         throw error;
       }
 
@@ -293,38 +277,11 @@ export default class Initialize extends Command {
   }
 
   private async askAdaptiveQuestions(codeAnalysis: any) {
-    this.log(chalk.bold('📝 A few questions to optimize your deployment:\n'));
-
     const questions: any[] = [];
 
-    // Question 1: Expected DAU (always ask)
-    questions.push({
-      type: 'input',
-      name: 'expectedDAU',
-      message: `Expected daily active users for your ${codeAnalysis.framework.framework} app?`,
-      default: '100',
-      validate: (input: string) => {
-        const num = parseInt(input, 10);
-        if (isNaN(num) || num <= 0) return 'DAU must be a positive number';
-        return true;
-      }
-    });
-
-    // Question 2: Budget (always ask)
-    questions.push({
-      type: 'input',
-      name: 'budget',
-      message: 'Monthly infrastructure budget (USD)?',
-      default: '50',
-      validate: (input: string) => {
-        const num = parseInt(input, 10);
-        if (isNaN(num) || num <= 0) return 'Budget must be a positive number';
-        return true;
-      }
-    });
-
-    // Question 3: Database preference (only if database detected)
+    // Question 1: Database preference (only if database detected)
     if (codeAnalysis.services.database) {
+      this.log(chalk.bold('📝 A few questions to optimize your deployment:\n'));
       questions.push({
         type: 'list',
         name: 'databasePreference',
@@ -337,22 +294,10 @@ export default class Initialize extends Command {
       });
     }
 
-    // Question 4: AWS Region (always ask)
-    questions.push({
-      type: 'list',
-      name: 'awsRegion',
-      message: 'Preferred AWS region (choose closest to your users)?',
-      choices: [
-        'us-east-1 (US East - N. Virginia)',
-        'us-west-2 (US West - Oregon)',
-        'eu-west-1 (EU - Ireland)',
-        'ap-northeast-1 (Asia Pacific - Tokyo)',
-        'ap-southeast-1 (Asia Pacific - Singapore)'
-      ],
-      default: 'us-east-1 (US East - N. Virginia)'
-    });
-
-    // Question 5: Custom domain (optional)
+    // Question 2: Custom domain (optional)
+    if (questions.length === 0) {
+      this.log(chalk.bold('📝 A few questions to optimize your deployment:\n'));
+    }
     questions.push({
       type: 'input',
       name: 'customDomain',
@@ -360,25 +305,26 @@ export default class Initialize extends Command {
       default: ''
     });
 
-    const answers: any = await inquirer.prompt(questions);
+    const answers: any = questions.length > 0 ? await inquirer.prompt(questions) : {};
 
+    // Use smart defaults for removed questions
     return {
       cloudProvider: 'aws',
-      expectedDAU: parseInt(answers.expectedDAU, 10),
-      budget: parseInt(answers.budget, 10),
+      expectedDAU: 1000,  // Smart default: medium traffic
+      budget: 100,        // Smart default: reasonable budget
       databasePreference: answers.databasePreference ?
         (answers.databasePreference.includes('Managed RDS') ? 'managed' : 'self-hosted') :
         undefined,
       customDomain: answers.customDomain || undefined,
-      awsRegion: answers.awsRegion.split(' ')[0]
+      awsRegion: 'us-east-1'  // Smart default: most common region
     };
   }
 
   private getDefaultAnswers() {
     return {
       cloudProvider: 'aws',
-      expectedDAU: 100,
-      budget: 50,
+      expectedDAU: 1000,
+      budget: 100,
       customDomain: undefined,
       awsRegion: 'us-east-1'
     };
