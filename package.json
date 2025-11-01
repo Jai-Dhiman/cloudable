@@ -1,0 +1,41 @@
+{
+  "name": "cloudable",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "./bin/dev.js",
+    "start": "./bin/run.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jai-Dhiman/cloudable.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jai-Dhiman/cloudable/issues"
+  },
+  "homepage": "https://github.com/Jai-Dhiman/cloudable#readme",
+  "bin": {
+    "cloudable": "./bin/run.js"
+  },
+  "oclif": {
+    "bin": "cloudable",
+    "commands": "./dist/commands",
+    "dirname": "cloudable",
+    "topicSeparator": " "
+  },
+  "dependencies": {
+    "@oclif/core": "^4.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
