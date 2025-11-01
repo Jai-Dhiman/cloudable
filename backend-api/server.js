@@ -14,6 +14,7 @@ import {
 import { ECRClient, CreateRepositoryCommand, DescribeRepositoriesCommand } from '@aws-sdk/client-ecr';
 import { S3Client, PutObjectCommand, CreateBucketCommand, HeadBucketCommand } from '@aws-sdk/client-s3';
 import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
+import { CloudWatchLogsClient, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 
 dotenv.config();
 
@@ -341,6 +342,52 @@ app.get('/api/deploy/status/:buildId', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Status check failed'
+    });
+  }
+});
+
+// Fetch CloudWatch logs endpoint
+app.get('/api/deploy/status/logs', async (req, res) => {
+  try {
+    const { groupName, streamName, region = 'us-east-1' } = req.query;
+
+    if (!groupName || !streamName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required query parameters: groupName, streamName'
+      });
+    }
+
+    const awsConfig = {
+      region,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    };
+
+    const logsClient = new CloudWatchLogsClient(awsConfig);
+    
+    // Fetch the last 100 log events
+    const response = await logsClient.send(new GetLogEventsCommand({
+      logGroupName: groupName,
+      logStreamName: streamName,
+      startFromHead: false,
+      limit: 100
+    }));
+
+    const logs = (response.events || []).map(event => event.message).filter(Boolean);
+
+    res.json({
+      success: true,
+      data: { logs }
+    });
+
+  } catch (error) {
+    console.error('Logs fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch logs'
     });
   }
 });

@@ -118,6 +118,13 @@ export class BackendDeployService {
           status.status === 'TIMED_OUT'
         ) {
           spinner.fail(chalk.red(`❌ Build ${status.status.toLowerCase()}`));
+          
+          // Fetch and display CloudWatch logs
+          if (status.logs?.groupName && status.logs?.streamName) {
+            console.log(chalk.yellow('\n📋 Build Logs:\n'));
+            await this.fetchAndDisplayLogs(status.logs.groupName, status.logs.streamName, region);
+          }
+          
           throw new Error(`Build ${status.status.toLowerCase()}`);
         }
 
@@ -177,6 +184,41 @@ export class BackendDeployService {
 
       archive.finalize();
     });
+  }
+
+  /**
+   * Fetch and display CloudWatch logs
+   */
+  private async fetchAndDisplayLogs(groupName: string, streamName: string, region: string): Promise<void> {
+    try {
+      const baseUrl = getEndpoint('DEPLOY_STATUS');
+      const logsUrl = `${baseUrl}/logs?groupName=${encodeURIComponent(groupName)}&streamName=${encodeURIComponent(streamName)}&region=${region}`;
+      
+      const response = await fetch(logsUrl);
+      
+      if (!response.ok) {
+        console.log(chalk.gray('(Could not fetch logs)'));
+        return;
+      }
+      
+      const result: any = await response.json();
+      
+      if (result.success && result.data?.logs) {
+        const logs = result.data.logs;
+        logs.forEach((log: string) => {
+          // Color error lines red
+          if (log.toLowerCase().includes('error') || log.toLowerCase().includes('failed')) {
+            console.log(chalk.red(log));
+          } else if (log.toLowerCase().includes('warning')) {
+            console.log(chalk.yellow(log));
+          } else {
+            console.log(chalk.gray(log));
+          }
+        });
+      }
+    } catch (error) {
+      console.log(chalk.gray('(Could not fetch logs)'));
+    }
   }
 
   /**
