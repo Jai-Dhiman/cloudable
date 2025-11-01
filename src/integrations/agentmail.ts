@@ -96,6 +96,11 @@ export class AgentMailClient {
 			bcc?: string[];
 			labels?: string[];
 			inboxId?: string;
+			attachments?: Array<{
+				filename: string;
+				content: Buffer;
+				contentType?: string;
+			}>;
 		},
 	): Promise<any> {
 		const fromInbox = options?.inboxId || this.defaultInboxId;
@@ -107,7 +112,7 @@ export class AgentMailClient {
 		try {
 			const recipients = Array.isArray(to) ? to : [to];
 
-			const message = await this.client.inboxes.messages.send(fromInbox, {
+			const messageOptions: any = {
 				to: recipients,
 				subject,
 				text,
@@ -115,7 +120,19 @@ export class AgentMailClient {
 				cc: options?.cc,
 				bcc: options?.bcc,
 				labels: options?.labels,
-			});
+			};
+
+			// Add attachments if provided
+			if (options?.attachments && options.attachments.length > 0) {
+				messageOptions.attachments = options.attachments.map((att) => ({
+					filename: att.filename,
+					content: att.content.toString('base64'),
+					contentType: att.contentType || 'application/pdf',
+					encoding: 'base64',
+				}));
+			}
+
+			const message = await this.client.inboxes.messages.send(fromInbox, messageOptions);
 
 			return message;
 		} catch (error) {
@@ -210,31 +227,52 @@ export class AgentMailClient {
 	}
 
 	/**
-	 * Send a weekly cost report email
+	 * Send a weekly cost report email with optional PDF attachment
 	 */
 	async sendCostReport(
 		report: WeeklyCostReport,
 		recipientEmail: string,
 		htmlTemplate: string,
-		threadId?: string,
+		options?: {
+			threadId?: string;
+			pdfAttachment?: Buffer;
+			pdfFilename?: string;
+		},
 	): Promise<{ messageId: string; threadId: string }> {
 		const subject = `Cloudable Weekly Cost Report - $${report.costSummary.totalCurrentWeek.toFixed(2)} (${report.costSummary.totalChangePercent >= 0 ? "↑" : "↓"}${Math.abs(report.costSummary.totalChangePercent).toFixed(1)}% vs last week)`;
 
 		const plainText = this.generatePlainTextReport(report);
+
+		const emailOptions: any = {
+			labels: ["cost-report", "weekly"],
+		};
+
+		if (options?.threadId) {
+			emailOptions.threadId = options.threadId;
+		}
+
+		// Add PDF attachment if provided
+		if (options?.pdfAttachment) {
+			emailOptions.attachments = [
+				{
+					filename: options.pdfFilename || `cost-report-${report.reportId}.pdf`,
+					content: options.pdfAttachment,
+					contentType: 'application/pdf',
+				},
+			];
+		}
 
 		const message = await this.sendEmail(
 			recipientEmail,
 			subject,
 			plainText,
 			htmlTemplate,
-			{
-				labels: ["cost-report", "weekly"],
-			},
+			emailOptions,
 		);
 
 		return {
 			messageId: (message as any).messageId || "",
-			threadId: (message as any).threadId || threadId || "",
+			threadId: (message as any).threadId || options?.threadId || "",
 		};
 	}
 

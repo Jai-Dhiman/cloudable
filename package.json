@@ -71,6 +71,7 @@
     "@types/inquirer": "^9.0.9",
     "@types/js-yaml": "^4.0.9",
     "@types/node-fetch": "^2.6.13",
+    "@types/pdfkit": "^0.17.3",
     "agentmail": "^0.1.4",
     "ai": "^5.0.86",
     "boxen": "^8.0.1",
@@ -88,7 +89,8 @@
     "js-yaml": "^4.1.0",
     "log-update": "^7.0.1",
     "openai": "^6.7.0",
-    "ora": "^9.0.0"
+    "ora": "^9.0.0",
+    "pdfkit": "^0.17.2"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.9",
