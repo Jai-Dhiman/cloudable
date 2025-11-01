@@ -1,22 +1,37 @@
 {
-  "name": "cloudable",
+  "name": "cloudable-cli",
   "version": "1.0.0",
-  "description": "",
+  "description": "Intelligent AWS infrastructure recommendations for any codebase - analyze and deploy in minutes",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
     "dev": "./bin/dev.js",
     "start": "./bin/run.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build"
   },
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Jai-Dhiman/cloudable.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "aws",
+    "deployment",
+    "infrastructure",
+    "cli",
+    "cloud",
+    "devops",
+    "nextjs",
+    "django",
+    "react",
+    "ecs",
+    "ec2",
+    "terraform",
+    "cost-optimization"
+  ],
+  "author": "Bikash Pokharel",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/Jai-Dhiman/cloudable/issues"
   },
@@ -24,6 +39,11 @@
   "bin": {
     "cloudable": "./bin/run.js"
   },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "oclif": {
     "bin": "cloudable",
     "commands": "./dist/commands",
@@ -33,7 +53,8 @@
   "dependencies": {
     "@oclif/core": "^4.8.0",
     "@types/js-yaml": "^4.0.9",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "ora": "^9.0.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.130",

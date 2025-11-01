@@ -1,0 +1,15 @@
+src/
+tsconfig.json
+.git/
+.github/
+node_modules/
+*.log
+.DS_Store
+test/
+tests/
+*.test.ts
+*.test.js
+.vscode/
+.idea/
+docs/
+
