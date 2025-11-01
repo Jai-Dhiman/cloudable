@@ -244,32 +244,14 @@ export default class Initialize extends Command {
         );
         
         await deployCmd.run();
+        
+        // Deploy command already shows success message with real URL
+        // No need to show duplicate message here
 
       } catch (error: any) {
         this.log(chalk.red('\n❌ Deployment failed: ' + error.message));
         throw error;
       }
-
-      // Success message with enhanced formatting
-      this.log('\n' + boxen(
-        chalk.bold.green('✓ Deployment Successful!\n\n') +
-        chalk.bold('🌐 Your application is live at:\n') +
-        chalk.cyan.underline('https://ec2-xx-xxx-xxx-xx.compute-1.amazonaws.com\n\n') +
-        chalk.bold('📊 Cost Monitoring:\n') +
-        chalk.gray('• Weekly cost reports via email\n') +
-        chalk.gray('• Reply to control resources\n') +
-        chalk.gray('  (e.g., "stop this service")\n\n') +
-        chalk.bold('📁 Next Steps:\n') +
-        chalk.gray('• View infrastructure: ') + chalk.cyan('cd terraform && terraform show\n') +
-        chalk.gray('• AWS Console: ') + chalk.cyan('https://console.aws.amazon.com\n') +
-        chalk.gray('• Destroy resources: ') + chalk.cyan('cloudable destroy'),
-        {
-          padding: 1,
-          margin: 1,
-          borderStyle: 'round',
-          borderColor: 'green'
-        }
-      ) + '\n');
 
     } catch (error) {
       this.error(`Initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
